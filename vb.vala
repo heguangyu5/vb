@@ -117,7 +117,7 @@ Usage: (hard coded vala(c) options: -v --directory=./build --output=dir_name)
     vala-build help
 
 Notes:
-    you can add more custom options by comment line like "// VB.cmd += --pkg=mysql -X -lmysqlclient".
+    you can add more custom options by comment line like `// VB.cmd += --pkg=mysql -X -lmysqlclient`.
 
 """);
     }
