@@ -18,6 +18,11 @@ class ValaBuild
             args_copy += "release";
         }
 
+        if (args_copy[1][0] == '-') {
+            this.cmd += "-X";
+            this.cmd += "-O";
+        }
+
         switch (args_copy[1]) {
             case "release":
                 this.cmd += "-X";
