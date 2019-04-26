@@ -11,9 +11,14 @@ class ValaBuild
     HashTable<string, bool> vapidir = new HashTable<string, bool>(str_hash, str_equal);
     HashTable<string, bool> VBcmd = new HashTable<string, bool>(str_hash, str_equal);
 
-    public ValaBuild(string mode)
+    public ValaBuild(string[] args)
     {
-        switch (mode) {
+        var args_copy = args;
+        if (args_copy.length == 1) {
+            args_copy += "release";
+        }
+
+        switch (args_copy[1]) {
             case "release":
                 this.cmd += "-X";
                 this.cmd += "-O";
@@ -28,10 +33,17 @@ class ValaBuild
                     "-v"
                 };
                 break;
-            default:
+            case "help":
                 ValaBuild.show_help();
                 Posix.exit(1);
                 break;
+            default:
+                this.cmd += args_copy[1];
+                break;
+        }
+
+        for (var i = 2; i < args_copy.length; i++) {
+            this.cmd += args_copy[i];
         }
     }
 
@@ -111,13 +123,13 @@ class ValaBuild
 vala-build - an ultra simple build tool for vala.
 
 Usage: (hard coded vala(c) options: -v --directory=./build --output=dir_name)
-    vala-build [release]    (add -X -O)
-    vala-build debug        (add -g --save-temps)
-    vala-build run          (call vala, no extra options)
+    vala-build [release] [extra-options]   (add -X -O)
+    vala-build debug     [extra-options]   (add -g --save-temps)
+    vala-build run       [extra-options]   (call vala, no extra options)
     vala-build help
 
 Notes:
-    you can add more custom options by comment line like `// VB.cmd += --pkg=mysql -X -lmysqlclient`.
+    you can add more extra options by comment line like `// VB.cmd += --pkg=mysql -X -lmysqlclient`.
 
 """);
     }
@@ -125,10 +137,5 @@ Notes:
 
 void main(string[] args)
 {
-    if (args.length > 2) {
-        ValaBuild.show_help();
-        return;
-    }
-
-    (new ValaBuild(args.length == 2 ? args[1] : "release")).run();
+    new ValaBuild(args).run();
 }
