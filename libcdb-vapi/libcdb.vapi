@@ -15,7 +15,7 @@ namespace Cdb
         public int readdata([CCode (array_length=false)]uint8[] buf);
         public uint8* getdata();
 
-        public string? findStr(string key)
+        public string? find_str(string key)
         {
             var result = find(key.data);
             if (result <= 0) {
@@ -31,7 +31,7 @@ namespace Cdb
             return (string)val;
         }
 
-        public string? findStr0(string key)
+        public unowned string? find_str0(string key)
         {
             var result = find(key.data);
             if (result <= 0) {
