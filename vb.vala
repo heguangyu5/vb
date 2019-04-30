@@ -76,11 +76,11 @@ class ValaBuild
             if (FileUtils.test(name, FileTest.IS_DIR)) {
                 this.append_source_files(path + name + "/");
             } else if (name.length > 5) {
-                var ext = name[-4:name.length];
-                if (ext == "vala") {
+                var ext = name[-5:name.length];
+                if (ext == ".vala") {
                     this.cmd += path + name;
                     this.parse_vb_cmd(path + name);
-                } else if (ext == "vapi") {
+                } else if (ext == ".vapi") {
                     if (!(path in vapidir)) {
                         vapidir[path] = true;
                         this.cmd += "--vapidir=" + path;
