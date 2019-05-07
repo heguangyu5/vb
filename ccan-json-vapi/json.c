@@ -29,10 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef USE_GLIB
-#include <glib.h>
-#endif
-
 typedef enum {
 	JSON_NULL,
 	JSON_BOOL,
@@ -478,11 +474,7 @@ void json_delete(JsonNode *node)
 			}
 			default:;
 		}
-        #ifdef USE_GLIB
-        g_slice_free(JsonNode, node);
-        # else
         free(node);
-        #endif
 	}
 }
 
@@ -611,13 +603,9 @@ double json_get_number(const JsonNode *node)
 
 static JsonNode *mknode(JsonTag tag)
 {
-    #ifdef USE_GLIB
-    JsonNode *ret = g_slice_new0(JsonNode);
-    #else
     JsonNode *ret = (JsonNode*) calloc(1, sizeof(JsonNode));
     if (ret == NULL)
         out_of_memory();
-    #endif
 	ret->tag = tag;
 	return ret;
 }
