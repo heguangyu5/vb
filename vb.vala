@@ -86,6 +86,9 @@ class ValaBuild
                         this.cmd += "--vapidir=" + path;
                     }
                     this.cmd += "--pkg=" + name[0:name.length-5];
+                } else if (ext[-2:ext.length] == ".a") {
+                    this.cmd += "-X";
+                    this.cmd += path + name;
                 }
             }
         }

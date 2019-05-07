@@ -1,4 +1,3 @@
-// VB.cmd += -X -lccanjson
 void main()
 {
     var json = """
