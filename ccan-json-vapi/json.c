@@ -29,6 +29,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_GLIB
+#include <glib.h>
+#endif
+
+typedef enum {
+	JSON_NULL,
+	JSON_BOOL,
+	JSON_STRING,
+	JSON_NUMBER,
+	JSON_ARRAY,
+	JSON_OBJECT,
+} JsonTag;
+
 struct JsonNode
 {
 	/* only if parent is an object or array (NULL otherwise) */
@@ -409,22 +422,7 @@ JsonNode *json_decode(const char *json)
 	return ret;
 }
 
-char *json_encode(const JsonNode *node)
-{
-	return json_stringify(node, NULL);
-}
-
-char *json_encode_string(const char *str)
-{
-	SB sb;
-	sb_init(&sb);
-
-	emit_string(&sb, str);
-
-	return sb_finish(&sb);
-}
-
-char *json_stringify(const JsonNode *node, const char *space)
+char *json_encode(const JsonNode *node, const char *space)
 {
 	SB sb;
 	sb_init(&sb);
@@ -437,12 +435,37 @@ char *json_stringify(const JsonNode *node, const char *space)
 	return sb_finish(&sb);
 }
 
+static void json_remove_from_parent(JsonNode *node)
+{
+	JsonNode *parent = node->parent;
+
+	if (parent != NULL) {
+		if (node->prev != NULL)
+			node->prev->next = node->next;
+		else
+			parent->children.head = node->next;
+		if (node->next != NULL)
+			node->next->prev = node->prev;
+		else
+			parent->children.tail = node->prev;
+
+		free(node->key);
+
+		node->parent = NULL;
+		node->prev = node->next = NULL;
+		node->key = NULL;
+	}
+}
+
 void json_delete(JsonNode *node)
 {
 	if (node != NULL) {
 		json_remove_from_parent(node);
 
 		switch (node->tag) {
+			case JSON_STRING:
+				free(node->string_);
+				break;
 			case JSON_ARRAY:
 			case JSON_OBJECT:
 			{
@@ -453,9 +476,13 @@ void json_delete(JsonNode *node)
 				}
 				break;
 			}
+			default:;
 		}
-
-		free(node);
+        #ifdef USE_GLIB
+        g_slice_free(JsonNode, node);
+        # else
+        free(node);
+        #endif
 	}
 }
 
@@ -474,7 +501,7 @@ bool json_validate(const char *json)
 	return true;
 }
 
-JsonNode *json_first_child(const JsonNode *node)
+static JsonNode *json_first_child(const JsonNode *node)
 {
 	if (node != NULL && (node->tag == JSON_ARRAY || node->tag == JSON_OBJECT))
 		return node->children.head;
@@ -512,25 +539,25 @@ JsonNode *json_find_member(JsonNode *object, const char *name)
 	return NULL;
 }
 
-void json_foreach_element(JsonNode *array, JsonArrayForeach func)
+void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata)
 {
     assert(array && array->tag == JSON_ARRAY);
 
     JsonNode *element;
     unsigned int index = 0;
     json_foreach(element, array) {
-        func(array, index, element, element->tag);
+        func(index, element, array, userdata);
         index++;
     }
 }
 
-void json_foreach_member(JsonNode *object, JsonObjectForeach func)
+void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdata)
 {
     assert(object && object->tag == JSON_OBJECT);
 
     JsonNode *member;
     json_foreach(member, object) {
-        func(object, member->key, member, member->tag);
+        func(member->key, member, object, userdata);
     }
 }
 
@@ -584,19 +611,23 @@ double json_get_number(const JsonNode *node)
 
 static JsonNode *mknode(JsonTag tag)
 {
-	JsonNode *ret = (JsonNode*) calloc(1, sizeof(JsonNode));
-	if (ret == NULL)
-		out_of_memory();
+    #ifdef USE_GLIB
+    JsonNode *ret = g_slice_new0(JsonNode);
+    #else
+    JsonNode *ret = (JsonNode*) calloc(1, sizeof(JsonNode));
+    if (ret == NULL)
+        out_of_memory();
+    #endif
 	ret->tag = tag;
 	return ret;
 }
 
-JsonNode *json_mknull(void)
+static JsonNode *json_mknull(void)
 {
 	return mknode(JSON_NULL);
 }
 
-JsonNode *json_mkbool(bool b)
+static JsonNode *json_mkbool(bool b)
 {
 	JsonNode *ret = mknode(JSON_BOOL);
 	ret->bool_ = b;
@@ -610,12 +641,12 @@ static JsonNode *mkstring(char *s)
 	return ret;
 }
 
-JsonNode *json_mkstring(const char *s)
+static JsonNode *json_mkstring(const char *s)
 {
 	return mkstring(json_strdup(s));
 }
 
-JsonNode *json_mknumber(double n)
+static JsonNode *json_mknumber(double n)
 {
 	JsonNode *node = mknode(JSON_NUMBER);
 	node->number_ = n;
@@ -672,6 +703,25 @@ void json_append_element(JsonNode *array, JsonNode *element)
 	append_node(array, element);
 }
 
+void json_append_element_null(JsonNode *array)
+{
+    json_append_element(array, json_mknull());
+}
+
+void json_append_element_bool(JsonNode *array, bool b)
+{
+    json_append_element(array, json_mkbool(b));
+}
+
+void json_append_element_string(JsonNode *array, const char *str)
+{
+    json_append_element(array, json_mkstring(str));
+}
+void json_append_element_number(JsonNode *array, double n)
+{
+    json_append_element(array, json_mknumber(n));
+}
+
 void json_prepend_element(JsonNode *array, JsonNode *element)
 {
 	assert(array->tag == JSON_ARRAY);
@@ -680,12 +730,51 @@ void json_prepend_element(JsonNode *array, JsonNode *element)
 	prepend_node(array, element);
 }
 
+void json_prepend_element_null(JsonNode *array)
+{
+    json_prepend_element(array, json_mknull());
+}
+
+void json_prepend_element_bool(JsonNode *array, bool b)
+{
+    json_prepend_element(array, json_mkbool(b));
+}
+
+void json_prepend_element_string(JsonNode *array, const char *str)
+{
+    json_prepend_element(array, json_mkstring(str));
+}
+void json_prepend_element_number(JsonNode *array, double n)
+{
+    json_prepend_element(array, json_mknumber(n));
+}
+
 void json_append_member(JsonNode *object, const char *key, JsonNode *value)
 {
 	assert(object->tag == JSON_OBJECT);
 	assert(value->parent == NULL);
 
 	append_member(object, json_strdup(key), value);
+}
+
+void json_append_member_null(JsonNode *object, const char *key)
+{
+    json_append_member(object, key, json_mknull());
+}
+
+void json_append_member_bool(JsonNode *object, const char *key, bool b)
+{
+    json_append_member(object, key, json_mkbool(b));
+}
+
+void json_append_member_string(JsonNode *object, const char *key, const char *str)
+{
+    json_append_member(object, key, json_mkstring(str));
+}
+
+void json_append_member_number(JsonNode *object, const char *key, double n)
+{
+    json_append_member(object, key, json_mknumber(n));
 }
 
 void json_prepend_member(JsonNode *object, const char *key, JsonNode *value)
@@ -697,26 +786,24 @@ void json_prepend_member(JsonNode *object, const char *key, JsonNode *value)
 	prepend_node(object, value);
 }
 
-void json_remove_from_parent(JsonNode *node)
+void json_prepend_member_null(JsonNode *object, const char *key)
 {
-	JsonNode *parent = node->parent;
+    json_prepend_member(object, key, json_mknull());
+}
 
-	if (parent != NULL) {
-		if (node->prev != NULL)
-			node->prev->next = node->next;
-		else
-			parent->children.head = node->next;
-		if (node->next != NULL)
-			node->next->prev = node->prev;
-		else
-			parent->children.tail = node->prev;
+void json_prepend_member_bool(JsonNode *object, const char *key, bool b)
+{
+    json_prepend_member(object, key, json_mkbool(b));
+}
 
-		free(node->key);
+void json_prepend_member_string(JsonNode *object, const char *key, const char *str)
+{
+    json_prepend_member(object, key, json_mkstring(str));
+}
 
-		node->parent = NULL;
-		node->prev = node->next = NULL;
-		node->key = NULL;
-	}
+void json_prepend_member_number(JsonNode *object, const char *key, double n)
+{
+    json_prepend_member(object, key, json_mknumber(n));
 }
 
 static bool parse_value(const char **sp, JsonNode **out)

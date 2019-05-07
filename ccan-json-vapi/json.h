@@ -23,38 +23,27 @@
 
 #ifndef CCAN_JSON_H
 #define CCAN_JSON_H
-
 #include <stdbool.h>
 #include <stddef.h>
-
-typedef enum {
-	JSON_NULL,
-	JSON_BOOL,
-	JSON_STRING,
-	JSON_NUMBER,
-	JSON_ARRAY,
-	JSON_OBJECT,
-} JsonTag;
 
 typedef struct JsonNode JsonNode;
 
 /*** Encoding, decoding, and validation ***/
 
-JsonNode   *json_decode         (const char *json);
-char       *json_encode         (const JsonNode *node);
-char       *json_encode_string  (const char *str);
-char       *json_stringify      (const JsonNode *node, const char *space);
-void        json_delete         (JsonNode *node);
-
-bool        json_validate       (const char *json);
+JsonNode   *json_decode     (const char *json);
+char       *json_encode     (const JsonNode *node, const char *space);
+void        json_delete     (JsonNode *node);
+bool        json_validate   (const char *json);
 
 /*** Lookup and traversal ***/
 
 JsonNode   *json_find_element   (JsonNode *array, int index);
 JsonNode   *json_find_member    (JsonNode *object, const char *key);
 
-typedef void (*JsonArrayForeach)(JsonNode *self, unsigned int index, JsonNode *element, JsonTag t);
-typedef void (*JsonObjectForeach)(JsonNode *self, const char *key, JsonNode *member, JsonTag t);
+typedef void (*JsonArrayForeach)(unsigned int index, JsonNode *element, JsonNode *self, void *userdata);
+typedef void (*JsonObjectForeach)(const char *key, JsonNode *member, JsonNode *self, void *userdata);
+void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata);
+void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdata);
 
 bool json_is_null(const JsonNode *node);
 bool json_is_bool(const JsonNode *node);
@@ -69,19 +58,29 @@ double json_get_number(const JsonNode *node);
 
 /*** Construction and manipulation ***/
 
-JsonNode *json_mknull(void);
-JsonNode *json_mkbool(bool b);
-JsonNode *json_mkstring(const char *s);
-JsonNode *json_mknumber(double n);
 JsonNode *json_mkarray(void);
 JsonNode *json_mkobject(void);
 
 void json_append_element(JsonNode *array, JsonNode *element);
+void json_append_element_null(JsonNode *array);
+void json_append_element_bool(JsonNode *array, bool b);
+void json_append_element_string(JsonNode *array, const char *str);
+void json_append_element_number(JsonNode *array, double n);
 void json_prepend_element(JsonNode *array, JsonNode *element);
+void json_prepend_element_null(JsonNode *array);
+void json_prepend_element_bool(JsonNode *array, bool b);
+void json_prepend_element_string(JsonNode *array, const char *str);
+void json_prepend_element_number(JsonNode *array, double n);
 void json_append_member(JsonNode *object, const char *key, JsonNode *value);
+void json_append_member_null(JsonNode *object, const char *key);
+void json_append_member_bool(JsonNode *object, const char *key, bool b);
+void json_append_member_string(JsonNode *object, const char *key, const char *str);
+void json_append_member_number(JsonNode *object, const char *key, double n);
 void json_prepend_member(JsonNode *object, const char *key, JsonNode *value);
-
-void json_remove_from_parent(JsonNode *node);
+void json_prepend_member_null(JsonNode *object, const char *key);
+void json_prepend_member_bool(JsonNode *object, const char *key, bool b);
+void json_prepend_member_string(JsonNode *object, const char *key, const char *str);
+void json_prepend_member_number(JsonNode *object, const char *key, double n);
 
 /*** Debugging ***/
 

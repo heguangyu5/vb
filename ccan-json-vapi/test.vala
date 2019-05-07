@@ -3,68 +3,78 @@ void main()
 {
     var json = """
 {
-    "a": "hello",
-    "b": "world",
-    "c": 1,
-    "d": 2,
-    "e": 1.1,
-    "f": 2.2,
-    "g": null,
-    "h": [1, 2, 3, "h1", "h2", "h3"],
-    "i": {
-            "i1": "hello",
-            "i2": "world"
-         }
+	"a": "hello 你好",
+	"b": "world \u4e16\u754c",
+	"c": 1,
+	"d": 2,
+	"e": 1.1,
+	"f": 2.2,
+	"g": null,
+	"h": [1, 2, 3, "h1", "h2", "h3"],
+	"i": {
+		"i1": "hello",
+		"i2": "world"
+	}
 }
 """;
 
-    print("validate result = %s\n", Ccan.Json.validate(json).to_string());
-    var node = new Ccan.Json.Node.decode(json);
-    print("stringify with default 4 space indent\n");
-    print("%s\n", node.stringify());
-    print("stringify with 2 space indent\n");
-    print("%s\n", node.stringify("  "));
-    print("stringify with no indent\n");
-    print("%s\n", node.stringify(null));
-    print("stringify with tab indent\n");
-    print("%s\n", node.stringify("\t"));
+    // validate
+    stdout.printf("validate result = %s\n", Ccan.Json.validate(json).to_string());
 
-    var node_null = new Ccan.Json.Node.null();
-    var node_bool = new Ccan.Json.Node.bool(true);
-    var node_string = new Ccan.Json.Node.string("hell world");
-    var node_number = new Ccan.Json.Node.number(3);
+    // decode
+    var node = new Ccan.Json.Node.decode(json);
+    // encode
+    stdout.printf("======encode======\n");
+    stdout.printf("%s\n", node.encode());
+    stdout.printf("encode with 4 space indent\n");
+    stdout.printf("%s\n", node.encode("    "));
+    // find
+    stdout.printf("======find======\n");
+    stdout.printf("h[3] = %s\n", node.find_member("h").find_element(3).get_string());
+    stdout.printf("b = %s\n", node.find_member("b").get_string());
+    // foreach
+    stdout.printf("======foreach======\n");
+    node.foreach_member((key, member, node) => {
+        stdout.printf("%s:\n\t", key);
+        if (member.is_null()) {
+            stdout.printf("NULL");
+        } else if (member.is_bool()) {
+            stdout.printf("%s", member.get_bool().to_string());
+        } else if (member.is_string()) {
+            stdout.printf("%s", member.get_string());
+        } else if (member.is_number()) {
+            stdout.printf("%s\n", member.get_number().to_string());
+        } else if (member.is_array()) {
+            member.foreach_element((idx, element, member) => {
+                stdout.printf("[%u]: %s\n\t", idx, element.to_string());
+            });
+        } else if (member.is_object()) {
+            member.foreach_member((key2, member2, member) => {
+                stdout.printf("%s: %s\n\t", key2, member2.to_string());
+            });
+        }
+        stdout.printf("\n");
+    });
+    // construction manipulation
+    stdout.printf("======construction manipulation======\n");
     var node_array = new Ccan.Json.Node.array();
     var node_object = new Ccan.Json.Node.object();
+    node_array.append_element_null();
+    node_array.append_element_bool(true);
+    node_array.prepend_element_string("hello world");
+    node_array.prepend_element_number(3);
+    stdout.printf("node_array.encode = %s\n", node_array.encode());
+    node_object.append_member_null("null");
+    node_object.append_member_bool("bool", true);
+    node_object.prepend_member_string("string", "hello world");
+    node_object.prepend_member_number("number", 3);
+    stdout.printf("node_object.encode = %s\n", node_object.encode());
 
-    print("node_array: %s\n", node_array.stringify());
-    print("node_object: %s\n", node_object.stringify());
+    var node_array2 = new Ccan.Json.Node.array();
+    node_array2.append_element((owned)node_object);
+    stdout.printf("node_array2.encode = %s\n", node_array2.encode());
 
-    node_array.append_element(node_null);
-    node_array.append_element(node_bool);
-    node_array.prepend_element(node_string);
-    node_array.prepend_element(node_number);
-    print("node_array (after append prepend): %s\n", node_array.stringify());
-    print("node_array[3] = %s\n", node_array.find_element(3).to_string());
-
-    node_array.foreach_element((self, idx, ele, t) => {
-        print("node_array[%u] = %s (%s)\n", idx, ele.to_string(), t.to_string());
-    });
-
-    node_null.remove_from_parent();
-    node_bool.remove_from_parent();
-    node_string.remove_from_parent();
-    node_number.remove_from_parent();
-    print("node_array (after remove): %s\n", node_array.stringify());
-
-
-    node_object.append_member("null", node_null);
-    node_object.append_member("bool", node_bool);
-    node_object.prepend_member("string", node_string);
-    node_object.prepend_member("number", node_number);
-    print("node_object (after append preprend): %s\n", node_object.stringify());
-    print("node_object.number = %s\n", node_object.find_member("number").to_string());
-
-    node_object.foreach_member((self, key, member, t) => {
-        print("node_object.%s = %s (%s)\n", key, member.to_string(), t.to_string());
-    });
+    var node_object2 = new Ccan.Json.Node.object();
+    node_object2.append_member("array", (owned)node_array);
+    stdout.printf("node_object2.encode = %s\n", node_object2.encode());
 }
