@@ -772,16 +772,18 @@ JsonNode *json_prepend_element(JsonNode *array, JsonNode *element)
 JsonNode *json_append_member(JsonNode *object, const char *key, JsonNode *value)
 {
     assert(object->tag == JSON_OBJECT);
+    char *key_dup = json_strdup(key);
     remove_from_parent(value);
-    append_member(object, json_strdup(key), value);
+    append_member(object, key_dup, value);
     return value;
 }
 
 JsonNode *json_prepend_member(JsonNode *object, const char *key, JsonNode *value)
 {
     assert(object->tag == JSON_OBJECT);
+    char *key_dup = json_strdup(key);
     remove_from_parent(value);
-    value->key = json_strdup(key);
+    value->key = key_dup;
     prepend_node(object, value);
     return value;
 }
