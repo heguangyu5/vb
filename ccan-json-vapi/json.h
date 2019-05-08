@@ -40,8 +40,8 @@ bool        json_validate   (const char *json);
 JsonNode   *json_find_element   (JsonNode *array, int index);
 JsonNode   *json_find_member    (JsonNode *object, const char *key);
 
-typedef void (*JsonArrayForeach)(unsigned int index, JsonNode *element, JsonNode *self, void *userdata);
-typedef void (*JsonObjectForeach)(const char *key, JsonNode *member, JsonNode *self, void *userdata);
+typedef bool (*JsonArrayForeach)(unsigned int index, JsonNode *element, JsonNode *self, void *userdata);
+typedef bool (*JsonObjectForeach)(const char *key, JsonNode *member, JsonNode *self, void *userdata);
 void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata);
 void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdata);
 

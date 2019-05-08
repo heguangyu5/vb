@@ -4,8 +4,8 @@ namespace Ccan.Json
     // validate
     public bool validate(string json);
 
-    public delegate void ArrayForeach(uint index, Node element, Node array);
-    public delegate void ObjectForeach(string key, Node member, Node object);
+    public delegate bool ArrayForeach(uint index, Node element, Node array);
+    public delegate bool ObjectForeach(string key, Node member, Node object);
 
     [Compact]
     [CCode (lower_case_cprefix="json_", free_function="json_delete")]

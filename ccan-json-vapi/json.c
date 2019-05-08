@@ -539,7 +539,9 @@ void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata
     JsonNode *element, *next_element;
     unsigned int index = 0;
     json_foreach(element, next_element, array) {
-        func(index, element, array, userdata);
+        if (!func(index, element, array, userdata)) {
+            break;
+        }
         index++;
     }
 }
@@ -550,7 +552,9 @@ void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdat
 
     JsonNode *member, *next_member;
     json_foreach(member, next_member, object) {
-        func(member->key, member, object, userdata);
+        if (!func(member->key, member, object, userdata)) {
+            break;
+        }
     }
 }
 

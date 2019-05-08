@@ -52,6 +52,7 @@ void main()
                 if (!element.is_string()) {
                     element.free();
                 }
+                return true;
             });
         } else if (member.is_object()) {
             member.foreach_member((key2, member2, member) => {
@@ -59,9 +60,11 @@ void main()
                 if (!member2.is_string()) {
                     member2.free();
                 }
+                return true;
             });
         }
         stdout.printf("\n");
+        return true;
     });
     stdout.printf("node keep string: %s\n", node.encode("  "));
     // construction manipulation
