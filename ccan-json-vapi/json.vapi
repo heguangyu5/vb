@@ -64,36 +64,36 @@ namespace Ccan.Json
         [CCode (cname="json_mkobject")]
         public Node.object();
         // manipulation
-        public void append_element(Node n);
+        public unowned Node append_element(Node n);
         [CCode (cname="json_append_element")]
-        public void append_element_owned(owned Node n);
+        public unowned Node append_element_owned(owned Node n);
         public unowned Node append_element_null();
         public unowned Node append_element_bool(bool b);
         public unowned Node append_element_string(string str);
         public unowned Node append_element_number(double n);
         public unowned Node append_element_array();
         public unowned Node append_element_object();
-        public void prepend_element(Node n);
+        public unowned Node prepend_element(Node n);
         [CCode (cname="json_prepend_element")]
-        public void prepend_element_owned(owned Node n);
+        public unowned Node prepend_element_owned(owned Node n);
         public unowned Node prepend_element_null();
         public unowned Node prepend_element_bool(bool b);
         public unowned Node prepend_element_string(string str);
         public unowned Node prepend_element_number(double n);
         public unowned Node prepend_element_array();
         public unowned Node prepend_element_object();
-        public void append_member(string key, Node n);
+        public unowned Node append_member(string key, Node n);
         [CCode (cname="json_append_member")]
-        public void append_member_owned(string key, owned Node n);
+        public unowned Node append_member_owned(string key, owned Node n);
         public unowned Node append_member_null(string key);
         public unowned Node append_member_bool(string key, bool b);
         public unowned Node append_member_string(string key, string str);
         public unowned Node append_member_number(string key, double n);
         public unowned Node append_member_array(string key);
         public unowned Node append_member_object(string key);
-        public void prepend_member(string key, Node n);
+        public unowned Node prepend_member(string key, Node n);
         [CCode (cname="json_prepend_member")]
-        public void prepend_member_owned(string key, owned Node n);
+        public unowned Node prepend_member_owned(string key, owned Node n);
         public unowned Node prepend_member_null(string key);
         public unowned Node prepend_member_bool(string key, bool b);
         public unowned Node prepend_member_string(string key, string str);
