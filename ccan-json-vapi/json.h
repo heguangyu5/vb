@@ -56,6 +56,14 @@ bool json_get_bool(const JsonNode *node);
 char *json_get_string(const JsonNode *node);
 double json_get_number(const JsonNode *node);
 
+void json_set_null(JsonNode *node);
+void json_set_bool(JsonNode *node, bool b);
+void json_set_string(JsonNode *node, const char *str);
+void json_set_number(JsonNode *node, double n);
+void json_set_array(JsonNode *node);
+void json_set_object(JsonNode *node);
+void json_set_key(JsonNode *node, const char *new_key);
+
 /*** Construction and manipulation ***/
 
 JsonNode *json_mkarray(void);

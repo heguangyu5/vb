@@ -36,6 +36,14 @@ namespace Ccan.Json
         public bool get_bool();
         public unowned string get_string();
         public double get_number();
+        // set value
+        public void set_null();
+        public void set_bool(bool b);
+        public void set_string(string str);
+        public void set_number(double n);
+        public void set_array();
+        public void set_object();
+        public void set_key(string new_key);
         // to_string
         public string to_string()
         {

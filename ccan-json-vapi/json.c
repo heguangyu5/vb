@@ -602,6 +602,71 @@ double json_get_number(const JsonNode *node)
     return node->number_;
 }
 
+static void set_cleanup(JsonNode *node)
+{
+    switch (node->tag) {
+        case JSON_STRING:
+            free(node->string_);
+            break;
+        case JSON_ARRAY:
+        case JSON_OBJECT:
+            {
+                JsonNode *child, *next;
+                for (child = node->children.head; child != NULL; child = next) {
+                    next = child->next;
+                    json_delete(child);
+                }
+                break;
+            }
+        default:;
+    }
+}
+
+void json_set_null(JsonNode *node)
+{
+    set_cleanup(node);
+    node->tag = JSON_NULL;
+}
+
+void json_set_bool(JsonNode *node, bool b)
+{
+    set_cleanup(node);
+    node->tag = JSON_BOOL;
+    node->bool_ = b;
+}
+
+void json_set_string(JsonNode *node, const char *str)
+{
+    set_cleanup(node);
+    node->tag = JSON_STRING;
+    node->string_ = json_strdup(str);
+}
+
+void json_set_number(JsonNode *node, double n)
+{
+    set_cleanup(node);
+    node->tag = JSON_NUMBER;
+    node->number_ = n;
+}
+
+void json_set_array(JsonNode *node)
+{
+    set_cleanup(node);
+    node->tag = JSON_ARRAY;
+}
+
+void json_set_object(JsonNode *node)
+{
+    set_cleanup(node);
+    node->tag = JSON_OBJECT;
+}
+
+void json_set_key(JsonNode *node, const char *new_key)
+{
+    free(node->key);
+    node->key = json_strdup(new_key);
+}
+
 static JsonNode *mknode(JsonTag tag)
 {
     JsonNode *ret = (JsonNode*) calloc(1, sizeof(JsonNode));
