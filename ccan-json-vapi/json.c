@@ -66,10 +66,11 @@ struct JsonNode
 	};
 };
 
-#define json_foreach(i, object_or_array)            \
-	for ((i) = json_first_child(object_or_array);   \
-		 (i) != NULL;                               \
-		 (i) = (i)->next)
+#define json_foreach(i, n, object_or_array)                                     \
+    for (i = json_first_child(object_or_array), n = i == NULL ? NULL : i->next; \
+         i != NULL;                                                             \
+         i = n, n = i == NULL ? NULL : i->next                                  \
+    )
 
 #define out_of_memory() do {                    \
 		fprintf(stderr, "Out of memory.\n");    \
@@ -431,7 +432,7 @@ char *json_encode(const JsonNode *node, const char *space)
 	return sb_finish(&sb);
 }
 
-static void json_remove_from_parent(JsonNode *node)
+static void remove_from_parent(JsonNode *node)
 {
 	JsonNode *parent = node->parent;
 
@@ -456,7 +457,7 @@ static void json_remove_from_parent(JsonNode *node)
 void json_delete(JsonNode *node)
 {
 	if (node != NULL) {
-		json_remove_from_parent(node);
+		remove_from_parent(node);
 
 		switch (node->tag) {
 			case JSON_STRING:
@@ -502,13 +503,13 @@ static JsonNode *json_first_child(const JsonNode *node)
 
 JsonNode *json_find_element(JsonNode *array, int index)
 {
-	JsonNode *element;
+	JsonNode *element, *next_element;
 	int i = 0;
 
 	if (array == NULL || array->tag != JSON_ARRAY)
 		return NULL;
 
-	json_foreach(element, array) {
+	json_foreach(element, next_element, array) {
 		if (i == index)
 			return element;
 		i++;
@@ -519,12 +520,12 @@ JsonNode *json_find_element(JsonNode *array, int index)
 
 JsonNode *json_find_member(JsonNode *object, const char *name)
 {
-	JsonNode *member;
+	JsonNode *member, *next_member;
 
 	if (object == NULL || object->tag != JSON_OBJECT)
 		return NULL;
 
-	json_foreach(member, object)
+	json_foreach(member, next_member, object)
 		if (strcmp(member->key, name) == 0)
 			return member;
 
@@ -535,9 +536,9 @@ void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata
 {
     assert(array && array->tag == JSON_ARRAY);
 
-    JsonNode *element;
+    JsonNode *element, *next_element;
     unsigned int index = 0;
-    json_foreach(element, array) {
+    json_foreach(element, next_element, array) {
         func(index, element, array, userdata);
         index++;
     }
@@ -547,8 +548,8 @@ void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdat
 {
     assert(object && object->tag == JSON_OBJECT);
 
-    JsonNode *member;
-    json_foreach(member, object) {
+    JsonNode *member, *next_member;
+    json_foreach(member, next_member, object) {
         func(member->key, member, object, userdata);
     }
 }
@@ -679,119 +680,203 @@ static void prepend_node(JsonNode *parent, JsonNode *child)
 
 static void append_member(JsonNode *object, char *key, JsonNode *value)
 {
+    remove_from_parent(value);
 	value->key = key;
 	append_node(object, value);
-}
-
-void json_append_element(JsonNode *array, JsonNode *element)
-{
-	assert(array->tag == JSON_ARRAY);
-	assert(element->parent == NULL);
-
-	append_node(array, element);
-}
-
-void json_append_element_null(JsonNode *array)
-{
-    json_append_element(array, json_mknull());
-}
-
-void json_append_element_bool(JsonNode *array, bool b)
-{
-    json_append_element(array, json_mkbool(b));
-}
-
-void json_append_element_string(JsonNode *array, const char *str)
-{
-    json_append_element(array, json_mkstring(str));
-}
-void json_append_element_number(JsonNode *array, double n)
-{
-    json_append_element(array, json_mknumber(n));
-}
-
-void json_prepend_element(JsonNode *array, JsonNode *element)
-{
-	assert(array->tag == JSON_ARRAY);
-	assert(element->parent == NULL);
-
-	prepend_node(array, element);
-}
-
-void json_prepend_element_null(JsonNode *array)
-{
-    json_prepend_element(array, json_mknull());
-}
-
-void json_prepend_element_bool(JsonNode *array, bool b)
-{
-    json_prepend_element(array, json_mkbool(b));
-}
-
-void json_prepend_element_string(JsonNode *array, const char *str)
-{
-    json_prepend_element(array, json_mkstring(str));
-}
-void json_prepend_element_number(JsonNode *array, double n)
-{
-    json_prepend_element(array, json_mknumber(n));
 }
 
 void json_append_member(JsonNode *object, const char *key, JsonNode *value)
 {
 	assert(object->tag == JSON_OBJECT);
-	assert(value->parent == NULL);
-
 	append_member(object, json_strdup(key), value);
 }
 
-void json_append_member_null(JsonNode *object, const char *key)
+void json_append_element(JsonNode *array, JsonNode *element)
 {
-    json_append_member(object, key, json_mknull());
+	assert(array->tag == JSON_ARRAY);
+	remove_from_parent(element);
+	append_node(array, element);
 }
 
-void json_append_member_bool(JsonNode *object, const char *key, bool b)
+JsonNode *json_append_element_null(JsonNode *array)
 {
-    json_append_member(object, key, json_mkbool(b));
+    JsonNode *node = json_mknull();
+    json_append_element(array, node);
+    return node;
 }
 
-void json_append_member_string(JsonNode *object, const char *key, const char *str)
+JsonNode *json_append_element_bool(JsonNode *array, bool b)
 {
-    json_append_member(object, key, json_mkstring(str));
+    JsonNode *node = json_mkbool(b);
+    json_append_element(array, node);
+    return node;
 }
 
-void json_append_member_number(JsonNode *object, const char *key, double n)
+JsonNode *json_append_element_string(JsonNode *array, const char *str)
 {
-    json_append_member(object, key, json_mknumber(n));
+    JsonNode *node = json_mkstring(str);
+    json_append_element(array, node);
+    return node;
+}
+
+JsonNode *json_append_element_number(JsonNode *array, double n)
+{
+    JsonNode *node = json_mknumber(n);
+    json_append_element(array, node);
+    return node;
+}
+
+JsonNode *json_append_element_array(JsonNode *array)
+{
+    JsonNode *node = json_mkarray();
+    json_append_element(array, node);
+    return node;
+}
+
+JsonNode *json_append_element_object(JsonNode *array)
+{
+    JsonNode *node = json_mkobject();
+    json_append_element(array, node);
+    return node;
+}
+
+void json_prepend_element(JsonNode *array, JsonNode *element)
+{
+	assert(array->tag == JSON_ARRAY);
+	prepend_node(array, element);
+}
+
+JsonNode *json_prepend_element_null(JsonNode *array)
+{
+    JsonNode *node = json_mknull();
+    json_prepend_element(array, node);
+    return node;
+}
+
+JsonNode *json_prepend_element_bool(JsonNode *array, bool b)
+{
+    JsonNode *node = json_mkbool(b);
+    json_prepend_element(array, node);
+    return node;
+}
+
+JsonNode *json_prepend_element_string(JsonNode *array, const char *str)
+{
+    JsonNode *node = json_mkstring(str);
+    json_prepend_element(array, node);
+    return node;
+}
+
+JsonNode *json_prepend_element_number(JsonNode *array, double n)
+{
+    JsonNode *node = json_mknumber(n);
+    json_prepend_element(array, node);
+    return node;
+}
+
+JsonNode *json_prepend_element_array(JsonNode *array)
+{
+    JsonNode *node = json_mkarray();
+    json_prepend_element(array, node);
+    return node;
+}
+
+JsonNode *json_prepend_element_object(JsonNode *array)
+{
+    JsonNode *node = json_mkobject();
+    json_prepend_element(array, node);
+    return node;
+}
+
+JsonNode *json_append_member_null(JsonNode *object, const char *key)
+{
+    JsonNode *node = json_mknull();
+    json_append_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_append_member_bool(JsonNode *object, const char *key, bool b)
+{
+    JsonNode *node = json_mkbool(b);
+    json_append_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_append_member_string(JsonNode *object, const char *key, const char *str)
+{
+    JsonNode *node = json_mkstring(str);
+    json_append_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_append_member_number(JsonNode *object, const char *key, double n)
+{
+    JsonNode *node = json_mknumber(n);
+    json_append_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_append_member_array(JsonNode *object, const char *key)
+{
+    JsonNode *node = json_mkarray();
+    json_append_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_append_member_object(JsonNode *object, const char *key)
+{
+    JsonNode *node = json_mkobject();
+    json_append_member(object, key, node);
+    return node;
 }
 
 void json_prepend_member(JsonNode *object, const char *key, JsonNode *value)
 {
 	assert(object->tag == JSON_OBJECT);
-	assert(value->parent == NULL);
-
 	value->key = json_strdup(key);
 	prepend_node(object, value);
 }
 
-void json_prepend_member_null(JsonNode *object, const char *key)
+JsonNode *json_prepend_member_null(JsonNode *object, const char *key)
 {
-    json_prepend_member(object, key, json_mknull());
+    JsonNode *node = json_mknull();
+    json_prepend_member(object, key, node);
+    return node;
 }
 
-void json_prepend_member_bool(JsonNode *object, const char *key, bool b)
+JsonNode *json_prepend_member_bool(JsonNode *object, const char *key, bool b)
 {
-    json_prepend_member(object, key, json_mkbool(b));
+    JsonNode *node = json_mkbool(b);
+    json_prepend_member(object, key, node);
+    return node;
 }
 
-void json_prepend_member_string(JsonNode *object, const char *key, const char *str)
+JsonNode *json_prepend_member_string(JsonNode *object, const char *key, const char *str)
 {
-    json_prepend_member(object, key, json_mkstring(str));
+    JsonNode *node = json_mkstring(str);
+    json_prepend_member(object, key, node);
+    return node;
 }
 
-void json_prepend_member_number(JsonNode *object, const char *key, double n)
+JsonNode *json_prepend_member_number(JsonNode *object, const char *key, double n)
 {
-    json_prepend_member(object, key, json_mknumber(n));
+    JsonNode *node = json_mknumber(n);
+    json_prepend_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_prepend_member_array(JsonNode *object, const char *key)
+{
+    JsonNode *node = json_mkarray();
+    json_prepend_member(object, key, node);
+    return node;
+}
+
+JsonNode *json_prepend_member_object(JsonNode *object, const char *key)
+{
+    JsonNode *node = json_mkobject();
+    json_prepend_member(object, key, node);
+    return node;
 }
 
 static bool parse_value(const char **sp, JsonNode **out)
@@ -1201,10 +1286,10 @@ void emit_value_indented(SB *out, const JsonNode *node, const char *space, int i
 
 static void emit_array(SB *out, const JsonNode *array)
 {
-	const JsonNode *element;
+	const JsonNode *element, *next_element;
 
 	sb_putc(out, '[');
-	json_foreach(element, array) {
+	json_foreach(element, next_element, array) {
 		emit_value(out, element);
 		if (element->next != NULL)
 			sb_putc(out, ',');
@@ -1238,10 +1323,10 @@ static void emit_array_indented(SB *out, const JsonNode *array, const char *spac
 
 static void emit_object(SB *out, const JsonNode *object)
 {
-	const JsonNode *member;
+	const JsonNode *member, *next_member;
 
 	sb_putc(out, '{');
-	json_foreach(member, object) {
+	json_foreach(member, next_member, object) {
 		emit_string(out, member->key);
 		sb_putc(out, ':');
 		emit_value(out, member);
