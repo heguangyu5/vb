@@ -4,9 +4,6 @@ namespace Ccan.Json
     // validate
     public bool validate(string json);
 
-    public delegate bool ArrayForeach(uint index, Node element, Node array);
-    public delegate bool ObjectForeach(string key, Node member, Node object);
-
     [Compact]
     [CCode (lower_case_cprefix="json_", free_function="json_delete")]
     public class Node
@@ -23,8 +20,10 @@ namespace Ccan.Json
         public unowned Node? find_element(int index);
         public unowned Node? find_member(string key);
         // foreach
-        public void foreach_element(ArrayForeach func);
-        public void foreach_member(ObjectForeach func);
+        public Iterator iterator()
+        {
+            return new Iterator(this);
+        }
         // type
         public bool is_null();
         public bool is_bool();
@@ -36,6 +35,7 @@ namespace Ccan.Json
         public bool get_bool();
         public unowned string get_string();
         public double get_number();
+        public unowned string get_key();
         // set value
         public void set_null();
         public void set_bool(bool b);
@@ -108,5 +108,13 @@ namespace Ccan.Json
         public unowned Node prepend_member_number(string key, double n);
         public unowned Node prepend_member_array(string key);
         public unowned Node prepend_member_object(string key);
+    }
+
+    [Compact]
+    [CCode (free_function="json_iterator_delete")]
+    public class Iterator
+    {
+        public Iterator(Node n);
+        public unowned Node? next_value();
     }
 }

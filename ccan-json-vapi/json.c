@@ -66,11 +66,10 @@ struct JsonNode
 	};
 };
 
-#define json_foreach(i, n, object_or_array)                                     \
-    for (i = json_first_child(object_or_array), n = i == NULL ? NULL : i->next; \
-         i != NULL;                                                             \
-         i = n, n = i == NULL ? NULL : i->next                                  \
-    )
+#define json_foreach(i, object_or_array)            \
+	for ((i) = first_child(object_or_array);   \
+		 (i) != NULL;                               \
+		 (i) = (i)->next)
 
 #define out_of_memory() do {                    \
 		fprintf(stderr, "Out of memory.\n");    \
@@ -494,7 +493,7 @@ bool json_validate(const char *json)
 	return true;
 }
 
-static JsonNode *json_first_child(const JsonNode *node)
+static JsonNode *first_child(const JsonNode *node)
 {
 	if (node != NULL && (node->tag == JSON_ARRAY || node->tag == JSON_OBJECT))
 		return node->children.head;
@@ -503,13 +502,13 @@ static JsonNode *json_first_child(const JsonNode *node)
 
 JsonNode *json_find_element(JsonNode *array, int index)
 {
-	JsonNode *element, *next_element;
+	JsonNode *element;
 	int i = 0;
 
 	if (array == NULL || array->tag != JSON_ARRAY)
 		return NULL;
 
-	json_foreach(element, next_element, array) {
+	json_foreach(element, array) {
 		if (i == index)
 			return element;
 		i++;
@@ -520,42 +519,16 @@ JsonNode *json_find_element(JsonNode *array, int index)
 
 JsonNode *json_find_member(JsonNode *object, const char *name)
 {
-	JsonNode *member, *next_member;
+	JsonNode *member;
 
 	if (object == NULL || object->tag != JSON_OBJECT)
 		return NULL;
 
-	json_foreach(member, next_member, object)
+	json_foreach(member, object)
 		if (strcmp(member->key, name) == 0)
 			return member;
 
 	return NULL;
-}
-
-void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata)
-{
-    assert(array && array->tag == JSON_ARRAY);
-
-    JsonNode *element, *next_element;
-    unsigned int index = 0;
-    json_foreach(element, next_element, array) {
-        if (!func(index, element, array, userdata)) {
-            break;
-        }
-        index++;
-    }
-}
-
-void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdata)
-{
-    assert(object && object->tag == JSON_OBJECT);
-
-    JsonNode *member, *next_member;
-    json_foreach(member, next_member, object) {
-        if (!func(member->key, member, object, userdata)) {
-            break;
-        }
-    }
 }
 
 bool json_is_null(const JsonNode *node)
@@ -604,6 +577,11 @@ double json_get_number(const JsonNode *node)
 {
     assert(node->tag == JSON_NUMBER);
     return node->number_;
+}
+
+char *json_get_key(const JsonNode *node)
+{
+    return node->key;
 }
 
 static void set_cleanup(JsonNode *node)
@@ -1317,10 +1295,10 @@ void emit_value_indented(SB *out, const JsonNode *node, const char *space, int i
 
 static void emit_array(SB *out, const JsonNode *array)
 {
-	const JsonNode *element, *next_element;
+	const JsonNode *element;
 
 	sb_putc(out, '[');
-	json_foreach(element, next_element, array) {
+	json_foreach(element, array) {
 		emit_value(out, element);
 		if (element->next != NULL)
 			sb_putc(out, ',');
@@ -1354,10 +1332,10 @@ static void emit_array_indented(SB *out, const JsonNode *array, const char *spac
 
 static void emit_object(SB *out, const JsonNode *object)
 {
-	const JsonNode *member, *next_member;
+	const JsonNode *member;
 
 	sb_putc(out, '{');
-	json_foreach(member, next_member, object) {
+	json_foreach(member, object) {
 		emit_string(out, member->key);
 		sb_putc(out, ':');
 		emit_value(out, member);
@@ -1668,4 +1646,54 @@ bool json_check(const JsonNode *node, char errmsg[256])
 	return true;
 
 	#undef problem
+}
+
+struct JsonIterator
+{
+    JsonNode *cur;
+    JsonNode *next;
+};
+
+JsonIterator *json_iterator_new(JsonNode *node)
+{
+    JsonIterator *iterator = malloc(sizeof(JsonIterator));
+    if (node == NULL) {
+        iterator->cur  = NULL;
+        iterator->next = NULL;
+        return iterator;
+    }
+
+    if (node->tag == JSON_ARRAY || node->tag == JSON_OBJECT) {
+        iterator->cur = first_child(node);
+        if (iterator->cur == NULL) {
+            iterator->next = NULL;
+        } else {
+            iterator->next = iterator->cur->next;
+        }
+    } else {
+        iterator->cur  = node;
+        iterator->next = iterator->cur->next;
+    }
+    return iterator;
+}
+
+void json_iterator_delete(JsonIterator *iterator)
+{
+    free(iterator);
+}
+
+JsonNode *json_iterator_next_value(JsonIterator *iterator)
+{
+    JsonNode *cur = iterator->cur;
+    if (cur == NULL) {
+        return NULL;
+    }
+
+    if (iterator->next == NULL) {
+        iterator->cur = NULL;
+    } else {
+        iterator->cur  = iterator->next;
+        iterator->next = iterator->cur->next;
+    }
+    return cur;
 }

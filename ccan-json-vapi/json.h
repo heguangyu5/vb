@@ -40,11 +40,6 @@ bool        json_validate   (const char *json);
 JsonNode   *json_find_element   (JsonNode *array, int index);
 JsonNode   *json_find_member    (JsonNode *object, const char *key);
 
-typedef bool (*JsonArrayForeach)(unsigned int index, JsonNode *element, JsonNode *self, void *userdata);
-typedef bool (*JsonObjectForeach)(const char *key, JsonNode *member, JsonNode *self, void *userdata);
-void json_foreach_element(JsonNode *array, JsonArrayForeach func, void *userdata);
-void json_foreach_member(JsonNode *object, JsonObjectForeach func, void *userdata);
-
 bool json_is_null(const JsonNode *node);
 bool json_is_bool(const JsonNode *node);
 bool json_is_string(const JsonNode *node);
@@ -55,6 +50,7 @@ bool json_is_object(const JsonNode *node);
 bool json_get_bool(const JsonNode *node);
 char *json_get_string(const JsonNode *node);
 double json_get_number(const JsonNode *node);
+char *json_get_key(const JsonNode *node);
 
 void json_set_null(JsonNode *node);
 void json_set_bool(JsonNode *node, bool b);
@@ -107,5 +103,11 @@ JsonNode *json_prepend_member_object(JsonNode *object, const char *key);
  * to errmsg (unless errmsg is NULL).
  */
 bool json_check(const JsonNode *node, char errmsg[256]);
+
+/*** Iterator ***/
+typedef struct JsonIterator JsonIterator;
+JsonIterator *json_iterator_new(JsonNode *node);
+void json_iterator_delete(JsonIterator *iterator);
+JsonNode *json_iterator_next_value(JsonIterator *iterator);
 
 #endif

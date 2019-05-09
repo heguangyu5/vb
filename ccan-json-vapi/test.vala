@@ -33,39 +33,38 @@ void main()
     stdout.printf("b = %s\n", node.find_member("b").get_string());
     // foreach
     stdout.printf("======foreach and free non-string node======\n");
-    node.foreach_member((key, member, node) => {
-        stdout.printf("%s:\n\t", key);
-        if (member.is_null()) {
+    foreach (unowned Ccan.Json.Node n in node) {
+        stdout.printf("%s:\n\t", n.get_key());
+        if (n.is_null()) {
             stdout.printf("NULL");
-            member.free();
-        } else if (member.is_bool()) {
-            stdout.printf("%s", member.get_bool().to_string());
-            member.free();
-        } else if (member.is_string()) {
-            stdout.printf("%s", member.get_string());
-        } else if (member.is_number()) {
-            stdout.printf("%s\n", member.get_number().to_string());
-            member.free();
-        } else if (member.is_array()) {
-            member.foreach_element((idx, element, member) => {
-                stdout.printf("[%u]: %s\n\t", idx, element.to_string());
-                if (!element.is_string()) {
-                    element.free();
+            n.free();
+        } else if (n.is_bool()) {
+            stdout.printf("%s", n.get_bool().to_string());
+            n.free();
+        } else if (n.is_string()) {
+            stdout.printf("%s", n.get_string());
+        } else if (n.is_number()) {
+            stdout.printf("%s\n", n.get_number().to_string());
+            n.free();
+        } else if (n.is_array()) {
+            uint idx = 0;
+            foreach (unowned Ccan.Json.Node n2 in n) {
+                stdout.printf("[%u]: %s\n\t", idx, n2.to_string());
+                if (!n2.is_string()) {
+                    n2.free();
                 }
-                return true;
-            });
-        } else if (member.is_object()) {
-            member.foreach_member((key2, member2, member) => {
-                stdout.printf("%s: %s\n\t", key2, member2.to_string());
-                if (!member2.is_string()) {
-                    member2.free();
+                idx++;
+            }
+        } else if (n.is_object()) {
+            foreach (unowned Ccan.Json.Node n2 in n) {
+                stdout.printf("%s: %s\n\t", n2.get_key(), n2.to_string());
+                if (!n2.is_string()) {
+                    n2.free();
                 }
-                return true;
-            });
+            }
         }
         stdout.printf("\n");
-        return true;
-    });
+    }
     stdout.printf("node keep string: %s\n", node.encode("  "));
     // construction manipulation
     stdout.printf("======construction manipulation======\n");
