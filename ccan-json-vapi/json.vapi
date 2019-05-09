@@ -19,6 +19,12 @@ namespace Ccan.Json
         // find
         public unowned Node? find_element(int index);
         public unowned Node? find_member(string key);
+        [CCode (cname="json_find_member")]
+        public unowned Node? get(string key);
+        public bool contains(string key)
+        {
+            return this.find_member(key) != null;
+        }
         // foreach
         public Iterator iterator()
         {
@@ -96,6 +102,10 @@ namespace Ccan.Json
         public unowned Node append_member_null(string key);
         public unowned Node append_member_bool(string key, bool b);
         public unowned Node append_member_string(string key, string str);
+        public void set(string key, string str)
+        {
+            this.append_member_string(key, str);
+        }
         public unowned Node append_member_number(string key, double n);
         public unowned Node append_member_array(string key);
         public unowned Node append_member_object(string key);
