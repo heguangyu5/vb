@@ -394,7 +394,6 @@ static int write_hex16(char *out, uint16_t val);
 static JsonNode *mknode(JsonTag tag);
 static void append_node(JsonNode *parent, JsonNode *child);
 static void prepend_node(JsonNode *parent, JsonNode *child);
-static void append_member(JsonNode *object, char *key, JsonNode *value);
 
 /* Assertion-friendly validity checks */
 static bool tag_is_valid(unsigned int tag);
@@ -431,7 +430,7 @@ char *json_encode(const JsonNode *node, const char *space)
 	return sb_finish(&sb);
 }
 
-static void remove_from_parent(JsonNode *node)
+static void remove_from_parent(JsonNode *node, bool free_key)
 {
 	JsonNode *parent = node->parent;
 
@@ -445,18 +444,20 @@ static void remove_from_parent(JsonNode *node)
 		else
 			parent->children.tail = node->prev;
 
-		free(node->key);
+        if (free_key) {
+		    free(node->key);
+		    node->key = NULL;
+		}
 
 		node->parent = NULL;
 		node->prev = node->next = NULL;
-		node->key = NULL;
 	}
 }
 
 void json_delete(JsonNode *node)
 {
 	if (node != NULL) {
-		remove_from_parent(node);
+		remove_from_parent(node, true);
 
 		switch (node->tag) {
 			case JSON_STRING:
@@ -725,16 +726,10 @@ static void prepend_node(JsonNode *parent, JsonNode *child)
 	parent->children.head = child;
 }
 
-static void append_member(JsonNode *object, char *key, JsonNode *value)
-{
-	value->key = key;
-	append_node(object, value);
-}
-
 JsonNode *json_append_element(JsonNode *array, JsonNode *element)
 {
     assert(array->tag == JSON_ARRAY);
-    remove_from_parent(element);
+    remove_from_parent(element, true);
     append_node(array, element);
     return element;
 }
@@ -742,27 +737,40 @@ JsonNode *json_append_element(JsonNode *array, JsonNode *element)
 JsonNode *json_prepend_element(JsonNode *array, JsonNode *element)
 {
     assert(array->tag == JSON_ARRAY);
-    remove_from_parent(element);
+    remove_from_parent(element, true);
     prepend_node(array, element);
     return element;
 }
 
-JsonNode *json_append_member(JsonNode *object, const char *key, JsonNode *value)
+JsonNode *json_append_member(JsonNode *object, JsonNode *value, const char *key)
 {
     assert(object->tag == JSON_OBJECT);
-    char *key_dup = json_strdup(key);
-    remove_from_parent(value);
-    append_member(object, key_dup, value);
+    if (key == NULL) {
+        assert(value->key != NULL);
+        remove_from_parent(value, false);
+        append_node(object, value);
+    } else {
+        char *key_dup = json_strdup(key);
+        remove_from_parent(value, true);
+        value->key = key_dup;
+        append_node(object, value);
+    }
     return value;
 }
 
-JsonNode *json_prepend_member(JsonNode *object, const char *key, JsonNode *value)
+JsonNode *json_prepend_member(JsonNode *object, JsonNode *value, const char *key)
 {
     assert(object->tag == JSON_OBJECT);
-    char *key_dup = json_strdup(key);
-    remove_from_parent(value);
-    value->key = key_dup;
-    prepend_node(object, value);
+    if (key == NULL) {
+        assert(value->key != NULL);
+        remove_from_parent(value, false);
+        prepend_node(object,value);
+    } else {
+        char *key_dup = json_strdup(key);
+        remove_from_parent(value, true);
+        value->key = key_dup;
+        prepend_node(object, value);
+    }
     return value;
 }
 
@@ -830,62 +838,62 @@ JsonNode *json_prepend_element_object(JsonNode *array)
 
 JsonNode *json_append_member_null(JsonNode *object, const char *key)
 {
-    return json_append_member(object, key, json_mknull());
+    return json_append_member(object, json_mknull(), key);
 }
 
 JsonNode *json_append_member_bool(JsonNode *object, const char *key, bool b)
 {
-    return json_append_member(object, key, json_mkbool(b));
+    return json_append_member(object, json_mkbool(b), key);
 }
 
 JsonNode *json_append_member_string(JsonNode *object, const char *key, const char *str)
 {
-    return json_append_member(object, key, json_mkstring(str));
+    return json_append_member(object, json_mkstring(str), key);
 }
 
 JsonNode *json_append_member_number(JsonNode *object, const char *key, double n)
 {
-    return json_append_member(object, key, json_mknumber(n));
+    return json_append_member(object, json_mknumber(n), key);
 }
 
 JsonNode *json_append_member_array(JsonNode *object, const char *key)
 {
-    return json_append_member(object, key, json_mkarray());
+    return json_append_member(object, json_mkarray(), key);
 }
 
 JsonNode *json_append_member_object(JsonNode *object, const char *key)
 {
-    return json_append_member(object, key, json_mkobject());
+    return json_append_member(object, json_mkobject(), key);
 }
 
 JsonNode *json_prepend_member_null(JsonNode *object, const char *key)
 {
-    return json_prepend_member(object, key, json_mknull());
+    return json_prepend_member(object, json_mknull(), key);
 }
 
 JsonNode *json_prepend_member_bool(JsonNode *object, const char *key, bool b)
 {
-    return json_prepend_member(object, key, json_mkbool(b));
+    return json_prepend_member(object, json_mkbool(b), key);
 }
 
 JsonNode *json_prepend_member_string(JsonNode *object, const char *key, const char *str)
 {
-    return json_prepend_member(object, key, json_mkstring(str));
+    return json_prepend_member(object, json_mkstring(str), key);
 }
 
 JsonNode *json_prepend_member_number(JsonNode *object, const char *key, double n)
 {
-    return json_prepend_member(object, key, json_mknumber(n));
+    return json_prepend_member(object, json_mknumber(n), key);
 }
 
 JsonNode *json_prepend_member_array(JsonNode *object, const char *key)
 {
-    return json_prepend_member(object, key, json_mkarray());
+    return json_prepend_member(object, json_mkarray(), key);
 }
 
 JsonNode *json_prepend_member_object(JsonNode *object, const char *key)
 {
-    return json_prepend_member(object, key, json_mkobject());
+    return json_prepend_member(object, json_mkobject(), key);
 }
 
 static bool parse_value(const char **sp, JsonNode **out)
@@ -1031,8 +1039,10 @@ static bool parse_object(const char **sp, JsonNode **out)
 			goto failure_free_key;
 		skip_space(&s);
 
-		if (out)
-			append_member(ret, key, value);
+		if (out) {
+		    value->key = key;
+		    append_node(ret, value);
+		}
 
 		if (*s == '}') {
 			s++;

@@ -90,18 +90,18 @@ namespace Ccan.Json
         public unowned Node prepend_element_number(double n);
         public unowned Node prepend_element_array();
         public unowned Node prepend_element_object();
-        public unowned Node append_member(string key, Node n);
+        public unowned Node append_member(Node n, string? key = null);
         [CCode (cname="json_append_member")]
-        public unowned Node append_member_owned(string key, owned Node n);
+        public unowned Node append_member_owned(owned Node n, string? key = null);
         public unowned Node append_member_null(string key);
         public unowned Node append_member_bool(string key, bool b);
         public unowned Node append_member_string(string key, string str);
         public unowned Node append_member_number(string key, double n);
         public unowned Node append_member_array(string key);
         public unowned Node append_member_object(string key);
-        public unowned Node prepend_member(string key, Node n);
+        public unowned Node prepend_member(Node n, string? key = null);
         [CCode (cname="json_prepend_member")]
-        public unowned Node prepend_member_owned(string key, owned Node n);
+        public unowned Node prepend_member_owned(owned Node n, string? key = null);
         public unowned Node prepend_member_null(string key);
         public unowned Node prepend_member_bool(string key, bool b);
         public unowned Node prepend_member_string(string key, string str);

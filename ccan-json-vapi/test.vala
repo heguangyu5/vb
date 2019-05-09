@@ -96,7 +96,7 @@ void main()
     inner_object.free();
     stdout.printf("node_object.encode after free inner array and inner object = %s\n", node_object.encode("  "));
     unowned Ccan.Json.Node node_array_3 = node_array.find_element(3);
-    node_object.append_member("node_array[3]", node_array_3);
+    node_object.append_member(node_array_3, "node_array[3]");
     stdout.printf("node_object.encode = %s\n", node_object.encode("  "));
     stdout.printf("node_array.encode = %s\n", node_array.encode("  "));
 
@@ -105,6 +105,6 @@ void main()
     stdout.printf("node_array2.encode = %s\n", node_array2.encode("  "));
 
     var node_object2 = new Ccan.Json.Node.object();
-    node_object2.append_member_owned("array", (owned)node_array);
+    node_object2.append_member_owned((owned)node_array, "array");
     stdout.printf("node_object2.encode = %s\n", node_object2.encode("  "));
 }
