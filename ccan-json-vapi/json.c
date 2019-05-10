@@ -194,9 +194,7 @@ static int utf8_validate_cz(const char *s)
 {
 	unsigned char c = *s++;
 
-	if (c <= 0x7F) {        /* 00..7F */
-		return 1;
-	} else if (c <= 0xC1) { /* 80..C1 */
+	if (c <= 0xC1) { /* 80..C1 */
 		/* Disallow overlong 2-byte sequence. */
 		return 0;
 	} else if (c <= 0xDF) { /* C2..DF */
@@ -1072,20 +1070,18 @@ bool parse_string(const char **sp, char **out)
 					/* Invalid escape */
 					goto failed;
 			}
-		} else if (c <= 0x1F) {
-			/* Control characters are not allowed in string literals. */
-			goto failed;
+		} else if (c > 0x1F && c <= 0x7F) {
+		    *b = c;
+		    b++;
 		} else {
 			/* Validate and echo a UTF-8 character. */
 			int len;
-
 			s--;
 			len = utf8_validate_cz(s);
 			if (len == 0)
 				goto failed; /* Invalid UTF-8 character. */
-
 			while (len--)
-				*b++ = *s++;
+			    *b++ = *s++;
 		}
 
 		/*
@@ -1358,19 +1354,17 @@ void emit_string(SB *out, const char *str)
 				*b++ = 't';
 				break;
 			default: {
-			    if (c <= 0x1F) {
-					goto out;
-				}
-
-				int len;
-				s--;
-				len = utf8_validate_cz(s);
-				if (len == 0) {
-					goto out;
+			    if (c > 0x1F && c <= 0x7F) {
+				    *b = c;
+				    b++;
 				} else {
-					/* Write the character directly. */
-					while (len--)
-						*b++ = *s++;
+				    int len;
+				    s--;
+				    len = utf8_validate_cz(s);
+				    if (len == 0)
+					    goto out;
+				    while (len--)
+				        *b++ = *s++;
 				}
 				break;
 			}
