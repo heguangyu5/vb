@@ -25,6 +25,11 @@ namespace Ccan.Json
         {
             return this.find_member(key) != null;
         }
+        public unowned Node? first_child();
+        public bool empty()
+        {
+            return this.first_child() == null;
+        }
         // foreach
         public Iterator iterator()
         {

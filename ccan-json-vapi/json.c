@@ -67,7 +67,7 @@ struct JsonNode
 };
 
 #define json_foreach(i, object_or_array)            \
-	for ((i) = first_child(object_or_array);   \
+	for ((i) = json_first_child(object_or_array);   \
 		 (i) != NULL;                               \
 		 (i) = (i)->next)
 
@@ -494,14 +494,14 @@ bool json_validate(const char *json)
 	return true;
 }
 
-static JsonNode *first_child(const JsonNode *node)
+JsonNode *json_first_child(const JsonNode *node)
 {
 	if (node != NULL && (node->tag == JSON_ARRAY || node->tag == JSON_OBJECT))
 		return node->children.head;
 	return NULL;
 }
 
-JsonNode *json_find_element(JsonNode *array, int index)
+JsonNode *json_find_element(const JsonNode *array, int index)
 {
 	JsonNode *element;
 	int i = 0;
@@ -518,7 +518,7 @@ JsonNode *json_find_element(JsonNode *array, int index)
 	return NULL;
 }
 
-JsonNode *json_find_member(JsonNode *object, const char *name)
+JsonNode *json_find_member(const JsonNode *object, const char *name)
 {
 	JsonNode *member;
 
@@ -1674,7 +1674,7 @@ JsonIterator *json_iterator_new(JsonNode *node)
     }
 
     if (node->tag == JSON_ARRAY || node->tag == JSON_OBJECT) {
-        iterator->cur = first_child(node);
+        iterator->cur = json_first_child(node);
         if (iterator->cur == NULL) {
             iterator->next = NULL;
         } else {
