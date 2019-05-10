@@ -107,4 +107,15 @@ void main()
     var node_object2 = new Ccan.Json.Node.object();
     node_object2.append_member_owned((owned)node_array, "array");
     stdout.printf("node_object2.encode = %s\n", node_object2.encode("  "));
+    // uniq
+    var arr = new Ccan.Json.Node.array();
+    arr.append_element_string("1");
+    arr.append_element_string("2");
+    arr.append_element_string("3");
+    arr.append_element_string("1");
+    arr.append_element_string("2");
+    arr.append_element_string("3");
+    stdout.printf("arr before uniq: %s\n", arr.encode());
+    arr.uniq();
+    stdout.printf("arr after uniq: %s\n", arr.encode());
 }

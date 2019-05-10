@@ -123,6 +123,22 @@ namespace Ccan.Json
         public unowned Node prepend_member_number(string key, double n);
         public unowned Node prepend_member_array(string key);
         public unowned Node prepend_member_object(string key);
+
+        public void uniq()
+        {
+            GLib.assert(this.is_array());
+            var hashtable = new GLib.HashTable<string, bool>(GLib.str_hash, GLib.str_equal);
+            foreach (unowned Node n in this) {
+                if (n.is_string()) {
+                    unowned string s = n.get_string();
+                    if (s in hashtable) {
+                        n.free();
+                    } else {
+                        hashtable.insert(s, true);
+                    }
+                }
+            }
+        }
     }
 
     [Compact]
