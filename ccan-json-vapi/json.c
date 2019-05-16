@@ -1529,22 +1529,30 @@ static bool expect_literal(const char **sp, const char *str)
  */
 static bool parse_hex16(const char **sp, uint16_t *out)
 {
+    static int8_t map[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0-15
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 16-31
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 32-47
+         0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1, // 48-63
+        -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 64-79
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 80-95
+        -1, 10, 11, 12, 13, 14, 15 // 96-102
+    };
 	const char *s = *sp;
 	uint16_t ret = 0;
 	uint16_t i;
 	uint16_t tmp;
-	char c;
+	uint8_t c;
 
 	for (i = 0; i < 4; i++) {
-		c = *s++;
-		if (c >= '0' && c <= '9')
-			tmp = c - '0';
-		else if (c >= 'A' && c <= 'F')
-			tmp = c - 'A' + 10;
-		else if (c >= 'a' && c <= 'f')
-			tmp = c - 'a' + 10;
-		else
-			return false;
+		c = s[i];
+		if (c > 102) {
+		    return false;
+		}
+		tmp = map[c];
+		if (tmp == -1) {
+		    return false;
+		}
 
 		ret <<= 4;
 		ret += tmp;
@@ -1552,7 +1560,7 @@ static bool parse_hex16(const char **sp, uint16_t *out)
 
 	if (out)
 		*out = ret;
-	*sp = s;
+	*sp = s + 4;
 	return true;
 }
 
