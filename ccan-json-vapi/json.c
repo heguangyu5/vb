@@ -244,20 +244,6 @@ static int utf8_validate_cz(const char *s)
 	}
 }
 
-/* Validate a null-terminated UTF-8 string. */
-static bool utf8_validate(const char *s)
-{
-	int len;
-
-	for (; *s != 0; s += len) {
-		len = utf8_validate_cz(s);
-		if (len == 0)
-			return false;
-	}
-
-	return true;
-}
-
 /*
  * Read a single UTF-8 character starting at @s,
  * returning the length, in bytes, of the character read.
@@ -1387,8 +1373,6 @@ void emit_string(SB *out, const char *str)
 	const char *s = str;
 	char *b;
 
-	assert(utf8_validate(str));
-
 	/*
 	 * 14 bytes is enough space to write up to two
 	 * \uXXXX escapes and two quotation marks.
@@ -1586,6 +1570,20 @@ static int write_hex16(char *out, uint16_t val)
 	*out++ = hex[ val        & 0xF];
 
 	return 4;
+}
+
+/* Validate a null-terminated UTF-8 string. */
+static bool utf8_validate(const char *s)
+{
+	int len;
+
+	for (; *s != 0; s += len) {
+		len = utf8_validate_cz(s);
+		if (len == 0)
+			return false;
+	}
+
+	return true;
 }
 
 bool json_check(const JsonNode *node, char errmsg[256])
