@@ -245,44 +245,6 @@ static int utf8_validate_cz(const char *s)
 }
 
 /*
- * Read a single UTF-8 character starting at @s,
- * returning the length, in bytes, of the character read.
- *
- * This function assumes input is valid UTF-8,
- * and that there are enough characters in front of @s.
- */
-static int utf8_read_char(const char *s, uchar_t *out)
-{
-	const unsigned char *c = (const unsigned char*) s;
-
-	assert(utf8_validate_cz(s));
-
-	if (c[0] <= 0x7F) {
-		/* 00..7F */
-		*out = c[0];
-		return 1;
-	} else if (c[0] <= 0xDF) {
-		/* C2..DF (unless input is invalid) */
-		*out = ((uchar_t)c[0] & 0x1F) << 6 |
-		       ((uchar_t)c[1] & 0x3F);
-		return 2;
-	} else if (c[0] <= 0xEF) {
-		/* E0..EF */
-		*out = ((uchar_t)c[0] &  0xF) << 12 |
-		       ((uchar_t)c[1] & 0x3F) << 6  |
-		       ((uchar_t)c[2] & 0x3F);
-		return 3;
-	} else {
-		/* F0..F4 (unless input is invalid) */
-		*out = ((uchar_t)c[0] &  0x7) << 18 |
-		       ((uchar_t)c[1] & 0x3F) << 12 |
-		       ((uchar_t)c[2] & 0x3F) << 6  |
-		       ((uchar_t)c[3] & 0x3F);
-		return 4;
-	}
-}
-
-/*
  * Write a single UTF-8 character to @s,
  * returning the length, in bytes, of the character written.
  *
@@ -337,22 +299,6 @@ static bool from_surrogate_pair(uint16_t uc, uint16_t lc, uchar_t *unicode)
 	}
 }
 
-/*
- * Construct a UTF-16 surrogate pair given a Unicode codepoint.
- *
- * @unicode must be U+10000..U+10FFFF.
- */
-static void to_surrogate_pair(uchar_t unicode, uint16_t *uc, uint16_t *lc)
-{
-	uchar_t n;
-
-	assert(unicode >= 0x10000 && unicode <= 0x10FFFF);
-
-	n = unicode - 0x10000;
-	*uc = ((n >> 10) & 0x3FF) | 0xD800;
-	*lc = (n & 0x3FF) | 0xDC00;
-}
-
 #define is_space(c) ((c) == '\t' || (c) == '\n' || (c) == '\r' || (c) == ' ')
 #define is_digit(c) ((c) >= '0' && (c) <= '9')
 
@@ -374,8 +320,6 @@ static void emit_array              (SB *out, const JsonNode *array);
 static void emit_array_indented     (SB *out, const JsonNode *array, const char *space, int indent_level);
 static void emit_object             (SB *out, const JsonNode *object);
 static void emit_object_indented    (SB *out, const JsonNode *object, const char *space, int indent_level);
-
-static int write_hex16(char *out, uint16_t val);
 
 static JsonNode *mknode(JsonTag tag);
 static void append_node(JsonNode *parent, JsonNode *child);
@@ -1369,7 +1313,6 @@ static void emit_object_indented(SB *out, const JsonNode *object, const char *sp
 
 void emit_string(SB *out, const char *str)
 {
-	bool escape_unicode = false;
 	const char *s = str;
 	char *b;
 
@@ -1415,58 +1358,20 @@ void emit_string(SB *out, const char *str)
 				*b++ = 't';
 				break;
 			default: {
-				int len;
+			    if (c <= 0x1F) {
+					goto out;
+				}
 
+				int len;
 				s--;
 				len = utf8_validate_cz(s);
-
 				if (len == 0) {
-					/*
-					 * Handle invalid UTF-8 character gracefully in production
-					 * by writing a replacement character (U+FFFD)
-					 * and skipping a single byte.
-					 *
-					 * This should never happen when assertions are enabled
-					 * due to the assertion at the beginning of this function.
-					 */
-					assert(false);
-					if (escape_unicode) {
-						strcpy(b, "\\uFFFD");
-						b += 6;
-					} else {
-						*b++ = 0xEF;
-						*b++ = 0xBF;
-						*b++ = 0xBD;
-					}
-					s++;
-				} else if (c < 0x1F || (c >= 0x80 && escape_unicode)) {
-					/* Encode using \u.... */
-					uint32_t unicode;
-
-					s += utf8_read_char(s, &unicode);
-
-					if (unicode <= 0xFFFF) {
-						*b++ = '\\';
-						*b++ = 'u';
-						b += write_hex16(b, unicode);
-					} else {
-						/* Produce a surrogate pair. */
-						uint16_t uc, lc;
-						assert(unicode <= 0x10FFFF);
-						to_surrogate_pair(unicode, &uc, &lc);
-						*b++ = '\\';
-						*b++ = 'u';
-						b += write_hex16(b, uc);
-						*b++ = '\\';
-						*b++ = 'u';
-						b += write_hex16(b, lc);
-					}
+					goto out;
 				} else {
 					/* Write the character directly. */
 					while (len--)
 						*b++ = *s++;
 				}
-
 				break;
 			}
 		}
@@ -1479,6 +1384,7 @@ void emit_string(SB *out, const char *str)
 		sb_need(out, 14);
 		b = out->cur;
 	}
+out:
 	*b++ = '"';
 
 	out->cur = b;
@@ -1562,106 +1468,6 @@ static bool parse_hex16(const char **sp, uint16_t *out)
 		*out = ret;
 	*sp = s + 4;
 	return true;
-}
-
-/*
- * Encodes a 16-bit number into hexadecimal,
- * writing exactly 4 hex chars.
- */
-static int write_hex16(char *out, uint16_t val)
-{
-	const char *hex = "0123456789ABCDEF";
-
-	*out++ = hex[(val >> 12) & 0xF];
-	*out++ = hex[(val >> 8)  & 0xF];
-	*out++ = hex[(val >> 4)  & 0xF];
-	*out++ = hex[ val        & 0xF];
-
-	return 4;
-}
-
-/* Validate a null-terminated UTF-8 string. */
-static bool utf8_validate(const char *s)
-{
-	int len;
-
-	for (; *s != 0; s += len) {
-		len = utf8_validate_cz(s);
-		if (len == 0)
-			return false;
-	}
-
-	return true;
-}
-
-bool json_check(const JsonNode *node, char errmsg[256])
-{
-	#define problem(...) do { \
-			if (errmsg != NULL) \
-				snprintf(errmsg, 256, __VA_ARGS__); \
-			return false; \
-		} while (0)
-
-	if (node->key != NULL && !utf8_validate(node->key))
-		problem("key contains invalid UTF-8");
-
-	if (!tag_is_valid(node->tag))
-		problem("tag is invalid (%u)", node->tag);
-
-	if (node->tag == JSON_BOOL) {
-		if (node->bool_ != false && node->bool_ != true)
-			problem("bool_ is neither false (%d) nor true (%d)", (int)false, (int)true);
-	} else if (node->tag == JSON_STRING) {
-		if (node->string_ == NULL)
-			problem("string_ is NULL");
-		if (!utf8_validate(node->string_))
-			problem("string_ contains invalid UTF-8");
-	} else if (node->tag == JSON_ARRAY || node->tag == JSON_OBJECT) {
-		JsonNode *head = node->children.head;
-		JsonNode *tail = node->children.tail;
-
-		if (head == NULL || tail == NULL) {
-			if (head != NULL)
-				problem("tail is NULL, but head is not");
-			if (tail != NULL)
-				problem("head is NULL, but tail is not");
-		} else {
-			JsonNode *child;
-			JsonNode *last = NULL;
-
-			if (head->prev != NULL)
-				problem("First child's prev pointer is not NULL");
-
-			for (child = head; child != NULL; last = child, child = child->next) {
-				if (child == node)
-					problem("node is its own child");
-				if (child->next == child)
-					problem("child->next == child (cycle)");
-				if (child->next == head)
-					problem("child->next == head (cycle)");
-
-				if (child->parent != node)
-					problem("child does not point back to parent");
-				if (child->next != NULL && child->next->prev != child)
-					problem("child->next does not point back to child");
-
-				if (node->tag == JSON_ARRAY && child->key != NULL)
-					problem("Array element's key is not NULL");
-				if (node->tag == JSON_OBJECT && child->key == NULL)
-					problem("Object member's key is NULL");
-
-				if (!json_check(child, errmsg))
-					return false;
-			}
-
-			if (last != tail)
-				problem("tail does not match pointer found by starting at head and following next links");
-		}
-	}
-
-	return true;
-
-	#undef problem
 }
 
 struct JsonIterator

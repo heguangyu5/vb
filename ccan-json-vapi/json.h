@@ -95,16 +95,6 @@ JsonNode *json_prepend_member_number(JsonNode *object, const char *key, double n
 JsonNode *json_prepend_member_array(JsonNode *object, const char *key);
 JsonNode *json_prepend_member_object(JsonNode *object, const char *key);
 
-/*** Debugging ***/
-
-/*
- * Look for structure and encoding problems in a JsonNode or its descendents.
- *
- * If a problem is detected, return false, writing a description of the problem
- * to errmsg (unless errmsg is NULL).
- */
-bool json_check(const JsonNode *node, char errmsg[256]);
-
 /*** Iterator ***/
 typedef struct JsonIterator JsonIterator;
 JsonIterator *json_iterator_new(JsonNode *node);
