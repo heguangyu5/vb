@@ -25,10 +25,10 @@ namespace Mysql
                 throw new DbError.Init("new Database failed, insufficient memory!");
             }
             if (this.db.options(Option.SET_CHARSET_NAME, charset) != 0) {
-                throw new DbError.Options("set charset failed: %s", db.error());
+                throw new DbError.Options("set charset failed: %s", this.db.error());
             }
             if (!this.db.real_connect(host, username, passwd, dbname, port)) {
-                throw new DbError.Connect("connect failed: %s", db.error());
+                throw new DbError.Connect("connect failed: %s", this.db.error());
             }
         }
 
@@ -119,47 +119,42 @@ namespace Mysql
             return this.db.query(s);
         }
 
-        public DbRow[] fetch_all(string sql) throws DbError
+        public DbStoreResult? store_result() throws DbError
         {
-            DbRow[] rows = {};
-
-            this.query(sql);
-            var res = this.db.store_result();
+            Result* res = this.db.store_result();
             if (res == null) {
                 unowned string errstr = this.db.error();
                 if (errstr != "") {
-                    throw new DbError.Query("fetch_all \"%s\" failed: %s", sql, errstr);
+                    throw new DbError.StoreResult("store_result failed: %s", errstr);
                 }
-                return rows;
+                return null;
             }
+            return new DbStoreResult(res);
+        }
 
-            unowned Field[] fields   = res.fetch_fields();
-            uint            num_rows = res.num_rows();
-            rows.resize((int)num_rows);
-            for (uint i = 0; i < num_rows; i++) {
-                rows[i] = new DbRow(fields, res.fetch_row());
+        public DbRow[] fetch_all(string sql) throws DbError
+        {
+            this.query(sql);
+            var res = this.store_result();
+            if (res == null) {
+                return new DbRow[0];
             }
-            return rows;
+            return res.to_array();
+        }
+
+        public DbUseResult use_result() throws DbError
+        {
+            Result* res = this.db.use_result();
+            if (res == null) {
+                throw new DbError.UseResult("use_result failed: %s", this.db.error());
+            }
+            return new DbUseResult(res, this.db);
         }
 
         public DbRow? fetch_row(string sql) throws DbError
         {
             this.query(sql);
-            var res = this.db.use_result();
-            if (res == null) {
-                throw new DbError.Query("fetch_row \"%s\" failed: %s", sql, this.db.error());
-            }
-
-            var row = res.fetch_row();
-            if (row == null) {
-                unowned string errstr = this.db.error();
-                if (errstr != "") {
-                    throw new DbError.Query("fetch_row \"%s\" failed: %s", sql, errstr);
-                }
-                return null;
-            }
-
-            return new DbRow(res.fetch_fields(), row);
+            return this.use_result().iterator().next_value();
         }
 
         public string? fetch_one(string sql) throws DbError
@@ -204,7 +199,7 @@ namespace Mysql
             return vals;
         }
 
-        public void beginTransaction() throws DbError
+        public void begin_transaction() throws DbError
         {
             this.query("START TRANSACTION");
         }
@@ -214,9 +209,97 @@ namespace Mysql
             this.query("COMMIT");
         }
 
-        public void rollBack() throws DbError
+        public void roll_back() throws DbError
         {
             this.query("ROLLBACK");
+        }
+    }
+
+    public class DbStoreResult
+    {
+        protected Result* res;
+        protected uint num_rows;
+        protected unowned Field[] fields;
+
+        public DbStoreResult(Result* res)
+        {
+            this.res      = res;
+            this.num_rows = res->num_rows();
+            this.fields   = res->fetch_fields();
+        }
+
+        ~DbStoreResult()
+        {
+            delete this.res;
+        }
+
+        public uint size {
+            get { return this.num_rows; }
+        }
+
+        public DbRow get(uint index)
+        {
+            this.res->data_seek(index);
+            return new DbRow(this.fields, this.res->fetch_row());
+        }
+
+        public DbRow[] to_array()
+        {
+            var rows = new DbRow[this.num_rows];
+            for (uint i = 0; i < this.num_rows; i++) {
+                rows[i] = new DbRow(this.fields, this.res->fetch_row());
+            }
+            return rows;
+        }
+    }
+
+    public class DbUseResult
+    {
+        protected Result *res;
+        protected unowned Database db;
+
+        public DbUseResult(Result *res, Database db)
+        {
+            this.res = res;
+            this.db = db;
+        }
+
+        ~DbUseResult()
+        {
+            delete this.res;
+        }
+
+        public DbUseResultIterator iterator()
+        {
+            return new DbUseResultIterator(this.res, this.db);
+        }
+    }
+
+    public class DbUseResultIterator
+    {
+        protected Result *res;
+        protected unowned Database db;
+        protected unowned Field[] fields;
+
+        public DbUseResultIterator(Result *res, Database db)
+        {
+            this.res = res;
+            this.db  = db;
+            this.fields = res->fetch_fields();
+        }
+
+        public DbRow? next_value() throws DbError
+        {
+            var row = this.res->fetch_row();
+            if (row == null) {
+                unowned string errstr = this.db.error();
+                if (errstr != "") {
+                    throw new DbError.UseResult("fetch_row failed: %s", errstr);
+                }
+                return null;
+            }
+
+            return new DbRow(this.fields, row);
         }
     }
 
@@ -241,6 +324,11 @@ namespace Mysql
         public unowned string get(string col_name)
         {
             return this.row.get(col_name);
+        }
+
+        public void set(string key, string value)
+        {
+            this.row.set(key, value);
         }
 
         public DbRowIterator iterator()
@@ -274,6 +362,8 @@ namespace Mysql
         Options,
         Connect,
         ColValMismatch,
-        Query
+        Query,
+        StoreResult,
+        UseResult
     }
 }

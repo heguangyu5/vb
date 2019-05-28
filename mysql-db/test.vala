@@ -15,19 +15,41 @@ CREATE TABLE `kv` (
 """);
 
         stdout.printf("insert\n");
-        db.insert(
-            "kv",
-            "k", "kk",
-            "v", "vv"
-        );
-        db.insert(
-            "kv",
-            "k", "键",
-            "v", "值"
-        );
+        uint total_rows = 10;
+        while (total_rows-- > 0) {
+            db.insert("kv",
+                "k", @"key-$total_rows",
+                "v", @"value-$total_rows"
+            );
+            db.insert("kv",
+                "k", @"键-$total_rows",
+                "v", @"值-$total_rows"
+            );
+        }
 
         stdout.printf("fetch_all\n");
-        foreach (Mysql.DbRow row in db.fetch_all("SELECT * FROM kxv")) {
+        foreach (Mysql.DbRow row in db.fetch_all("SELECT * FROM kv")) {
+            foreach (Mysql.DbColumn col in row) {
+                stdout.printf("%s => %s\t", col.name, col.val);
+            }
+            stdout.printf("\trow['k'] = %s\n", row["k"]);
+        }
+
+        stdout.printf("store_result foreach\n");
+        db.query("SELECT * FROM kv");
+        var res = db.store_result();
+        if (res != null) {
+            foreach (Mysql.DbRow row in res) {
+                foreach (Mysql.DbColumn col in row) {
+                    stdout.printf("%s => %s\t", col.name, col.val);
+                }
+                stdout.printf("\trow['k'] = %s\n", row["k"]);
+            }
+        }
+
+        stdout.printf("use_result foreach\n");
+        db.query("SELECT * FROM kv");
+        foreach (Mysql.DbRow row in db.use_result()) {
             foreach (Mysql.DbColumn col in row) {
                 stdout.printf("%s => %s\t", col.name, col.val);
             }
@@ -38,12 +60,14 @@ CREATE TABLE `kv` (
         db.update("kv", "k = 'kk'", "v", "VVVVV");
 
         stdout.printf("fetch_row\n");
-        var row = db.fetch_row("SELECT * FROM kv WHERE k = 'kk' LIMIT 1");
+        var row = db.fetch_row("SELECT * FROM kv");
         if (row != null) {
             foreach (Mysql.DbColumn col in row) {
                 stdout.printf("%s => %s\t", col.name, col.val);
             }
             stdout.printf("\n");
+            row["k"] = "new kkkk";
+            stdout.printf("row['k'] = %s\n", row["k"]);
         }
 
         stdout.printf("fetch_one\n");
