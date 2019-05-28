@@ -288,6 +288,23 @@ namespace Mysql
         {
             return new DbUseResultIterator(this.res, this.db);
         }
+
+        public void foreach(DbResultForeachFunc func) throws DbError
+        {
+            uint i = 0;
+            while (true) {
+                var row = this.res->fetch_row();
+                if (row == null) {
+                    unowned string errstr = this.db.error();
+                    if (errstr != "") {
+                        throw new DbError.UseResult("fetch_row failed: %s\n", errstr);
+                    }
+                    break;
+                }
+                func(i, row);
+                i++;
+            }
+        }
     }
 
     public class DbUseResultIterator

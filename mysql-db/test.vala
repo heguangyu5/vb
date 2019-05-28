@@ -80,6 +80,20 @@ CREATE TABLE `kv` (
             }
             stdout.printf("\trow['k'] = %s\n", row["k"]);
         }
+        stdout.printf("use_result foreach\n");
+        db.query("SELECT * FROM kv");
+        SKV[] rows = {};
+        db.use_result().foreach((i, row) => {
+            stdout.printf("%s\n", string.joinv("\t", row));
+            rows += SKV() {
+                id = int.parse(row[0]),
+                k  = row[1],
+                v  = row[2]
+            };
+        });
+        foreach (unowned SKV row in rows) {
+            stdout.printf("id = %u, k = %s, v = %s\n", row.id, row.k, row.v);
+        }
 
         stdout.printf("update\n");
         db.update("kv", "k = 'kk'", "v", "VVVVV");
