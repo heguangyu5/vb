@@ -215,10 +215,12 @@ namespace Mysql
         }
     }
 
+    public delegate void DbResultForeachFunc(uint index, string[] row);
+
     public class DbStoreResult
     {
         protected Result* res;
-        protected uint num_rows;
+        public uint num_rows { get; private set; }
         protected unowned Field[] fields;
 
         public DbStoreResult(Result* res)
@@ -243,13 +245,26 @@ namespace Mysql
             return new DbRow(this.fields, this.res->fetch_row());
         }
 
-        public DbRow[] to_array()
+        public DbRow[] to_array(bool rewind = false)
         {
+            if (rewind) {
+                this.res->data_seek(0);
+            }
             var rows = new DbRow[this.num_rows];
             for (uint i = 0; i < this.num_rows; i++) {
                 rows[i] = new DbRow(this.fields, this.res->fetch_row());
             }
             return rows;
+        }
+
+        public void foreach(DbResultForeachFunc func, bool rewind = false)
+        {
+            if (rewind) {
+                this.res->data_seek(0);
+            }
+            for (uint i = 0; i < this.num_rows; i++) {
+                func(i, this.res->fetch_row());
+            }
         }
     }
 

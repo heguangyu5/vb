@@ -1,3 +1,10 @@
+struct SKV
+{
+    uint id;
+    string k;
+    string v;
+}
+
 void main()
 {
     try {
@@ -44,6 +51,24 @@ CREATE TABLE `kv` (
                     stdout.printf("%s => %s\t", col.name, col.val);
                 }
                 stdout.printf("\trow['k'] = %s\n", row["k"]);
+            }
+            stdout.printf("store_result to_array\n");
+            foreach (Mysql.DbRow row in res.to_array(true)) {
+                foreach (Mysql.DbColumn col in row) {
+                    stdout.printf("%s => %s\t", col.name, col.val);
+                }
+                stdout.printf("\n");
+            }
+            stdout.printf("store_result foreach\n");
+            var rows = new SKV[res.num_rows];
+            res.foreach((i, row) => {
+                stdout.printf("%s\n", string.joinv("\t", row));
+                rows[i].id = int.parse(row[0]);
+                rows[i].k  = row[1];
+                rows[i].v  = row[2];
+            }, true);
+            foreach (unowned SKV row in rows) {
+                stdout.printf("id = %u, k = %s, v = %s\n", row.id, row.k, row.v);
             }
         }
 
