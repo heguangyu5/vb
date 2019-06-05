@@ -17,15 +17,43 @@ namespace OpenSSL
         public RSA.pem_read_pubkey(GLib.FileStream in_stream, out RSA? x = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
         [CCode (cname="PEM_read_RSAPrivateKey")]
         public RSA.pem_read_privkey(GLib.FileStream in_stream, out RSA? x = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
+        [CCode (cname="d2i_RSAPublicKey")]
+        public RSA.d2i_pubkey(out RSA? a = null, uint8 **p, long length);
+        [CCode (cname="d2i_RSAPrivateKey")]
+        public RSA.d2i_privkey(out RSA? a = null, uint8 **p, long length);
 
-        public static RSA read_pubkey(string filename)
+        public static RSA? read_pubkey(string filename)
         {
             return new RSA.pem_read_pubkey(GLib.FileStream.open(filename, "r"));
         }
 
-        public static RSA read_privkey(string filename)
+        public static RSA? read_privkey(string filename)
         {
             return new RSA.pem_read_privkey(GLib.FileStream.open(filename, "r"));
+        }
+
+        public static RSA? read_pubkey_binary(string filename)
+        {
+            uint8[] binary;
+            try {
+                GLib.FileUtils.get_data(filename, out binary);
+            } catch (GLib.FileError e) {
+                return null;
+            }
+            uint8 *p = binary;
+            return new RSA.d2i_pubkey(null, &p, binary.length);
+        }
+
+        public static RSA? read_privkey_binary(string filename)
+        {
+            uint8[] binary;
+            try {
+                GLib.FileUtils.get_data(filename, out binary);
+            } catch (GLib.FileError e) {
+                return null;
+            }
+            uint8 *p = binary;
+            return new RSA.d2i_privkey(null, &p, binary.length);
         }
 
         public static RSA? keygen(int bits)
@@ -59,6 +87,43 @@ namespace OpenSSL
         {
             var stream = GLib.FileStream.open(filename, "w");
             return pem_write_pubkey(stream) == 1;
+        }
+
+        [CCode (cname="i2d_RSAPrivateKey")]
+        public int i2d_privkey([CCode (array_length=false)] out uint8[] binary);
+        [CCode (cname="i2d_RSAPublicKey")]
+        public int i2d_pubkey([CCode (array_length=false)] out uint8[] binary);
+
+        public bool write_privkey_binary(string filename)
+        {
+            uint8[] binary;
+            int len = i2d_privkey(out binary);
+            if (len <= 0) {
+                return false;
+            }
+            binary.length = len;
+            try {
+                GLib.FileUtils.set_data(filename, binary);
+                return true;
+            } catch (GLib.FileError e) {
+                return false;
+            }
+        }
+
+        public bool write_pubkey_binary(string filename)
+        {
+            uint8[] binary;
+            int len = i2d_pubkey(out binary);
+            if (len <= 0) {
+                return false;
+            }
+            binary.length = len;
+            try {
+                GLib.FileUtils.set_data(filename, binary);
+                return true;
+            } catch (GLib.FileError e) {
+                return false;
+            }
         }
 
         [CCode (instance_pos=2.1)]
