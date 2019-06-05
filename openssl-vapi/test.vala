@@ -1,9 +1,8 @@
 void main()
 {
-    // EVP
-    var pkey = OpenSSL.rsa_keygen(2048);
-    pkey.write_privkey("/tmp/privkey.pem");
-    pkey.write_pubkey("/tmp/pubkey.pem");
+    var rsa = OpenSSL.RSA.keygen(2048);
+    rsa.write_privkey("/tmp/privkey.pem");
+    rsa.write_pubkey("/tmp/pubkey.pem");
 
     string privkey;
     string pubkey;
@@ -18,7 +17,6 @@ void main()
         stdout.printf("%s\n", e.message);
     }
 
-    // RSA
     var rsa_privkey = OpenSSL.RSA.read_privkey("/tmp/privkey.pem");
     var rsa_pubkey  = OpenSSL.RSA.read_pubkey("/tmp/pubkey.pem");
     stdout.printf("===pubkey encrypt===\n");

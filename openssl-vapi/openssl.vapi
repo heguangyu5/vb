@@ -1,20 +1,52 @@
-[CCode (cprefix="", lower_case_cprefix="")]
+[CCode (cprefix="", lower_case_cprefix="", cheader_filename="openssl/pem.h,openssl/rsa.h,openssl/engine.h,openssl/bn.h")]
 namespace OpenSSL
 {
 
     [CCode (cname="pem_password_cb", has_target=false)]
     public delegate int pemPasswordCb(uint8[] buf, int rwflag, [CCode (array_length=false)]  uint8[] userdata);
 
-    // EVP
+    // RSA
     [Compact]
-    [CCode (lower_case_cprefix="EVP_PKEY_", cheader_filename="openssl/evp.h,openssl/pem.h", free_function="EVP_PKEY_free")]
-    public class EVP_PKEY
+    [CCode (lower_case_cprefix="RSA_", free_function="RSA_free")]
+    public class RSA
     {
-        public EVP_PKEY();
+        public const uint F4;
 
-        [CCode (cname="PEM_write_PrivateKey", instance_pos=1.1)]
+        public RSA();
+        [CCode (cname="PEM_read_RSA_PUBKEY")]
+        public RSA.pem_read_pubkey(GLib.FileStream in_stream, out RSA? x = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
+        [CCode (cname="PEM_read_RSAPrivateKey")]
+        public RSA.pem_read_privkey(GLib.FileStream in_stream, out RSA? x = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
+
+        public static RSA read_pubkey(string filename)
+        {
+            return new RSA.pem_read_pubkey(GLib.FileStream.open(filename, "r"));
+        }
+
+        public static RSA read_privkey(string filename)
+        {
+            return new RSA.pem_read_privkey(GLib.FileStream.open(filename, "r"));
+        }
+
+        public static RSA? keygen(int bits)
+        {
+            var rsa = new RSA();
+            var bn  = new BIGNUM();
+            if (rsa == null || bn == null || bn.set_word(RSA.F4) == 0) {
+                return null;
+            }
+            if (rsa.generate_key_ex(bits, bn) == 0) {
+                return null;
+            }
+            return rsa;
+        }
+
+        public int size();
+        public int generate_key_ex(int bits, BIGNUM e, BN_GENCB? cb = null);
+
+        [CCode (cname="PEM_write_RSAPrivateKey", instance_pos=1.1)]
         public int pem_write_privkey(GLib.FileStream out_stream = GLib.stdout, EVP_CIPHER? enc = null, uint8[]? kstr = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
-        [CCode (cname="PEM_write_PUBKEY", instance_pos=1.1)]
+        [CCode (cname="PEM_write_RSA_PUBKEY", instance_pos=1.1)]
         public int pem_write_pubkey(GLib.FileStream out_stream = GLib.stdout);
 
         public bool write_privkey(string filename)
@@ -28,52 +60,6 @@ namespace OpenSSL
             var stream = GLib.FileStream.open(filename, "w");
             return pem_write_pubkey(stream) == 1;
         }
-    }
-
-    [Compact]
-    [CCode (lower_case_cprefix="EVP_PKEY_CTX_", cheader_filename="openssl/evp.h", free_function="EVP_PKEY_CTX_free")]
-    public class EVP_PKEY_CTX
-    {
-        public EVP_PKEY_CTX.id(int id, ENGINE? e = null);
-
-        public static EVP_PKEY_CTX rsa()
-        {
-            return new EVP_PKEY_CTX.id(6);
-        }
-
-        [CCode (cname="EVP_PKEY_keygen_init")]
-        public int keygen_init();
-
-        [CCode (cheader_filename="openssl/rsa.h")]
-        public int set_rsa_keygen_bits(int bits);
-
-        [CCode (cname="EVP_PKEY_keygen")]
-        public int keygen(out EVP_PKEY pkey);
-    }
-
-    // RSA
-    [Compact]
-    [CCode (lower_case_cprefix="RSA_", cheader_filename="openssl/pem.h,openssl/rsa.h,openssl/engine.h", free_function="RSA_free")]
-    public class RSA
-    {
-        public RSA();
-        [CCode (cname="PEM_read_RSA_PUBKEY")]
-        public RSA.pem_read_pubkey(GLib.FileStream in_stream, out RSA? x = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
-        [CCode (cname="PEM_read_RSAPrivateKey")]
-        public RSA.pem_read_privkey(GLib.FileStream in_stream, out RSA? x = null, pemPasswordCb? cb = null, [CCode (array_length=false)] uint8[]? u = null);
-
-
-        public static RSA read_pubkey(string filename)
-        {
-            return new RSA.pem_read_pubkey(GLib.FileStream.open(filename, "r"));
-        }
-
-        public static RSA read_privkey(string filename)
-        {
-            return new RSA.pem_read_privkey(GLib.FileStream.open(filename, "r"));
-        }
-
-        public int size();
 
         [CCode (instance_pos=2.1)]
         public int public_encrypt([CCode (array_length_pos=0.1)] uint8[] data, [CCode (array_length=false)] uint8[] crypted, int padding = 1);
@@ -159,34 +145,21 @@ namespace OpenSSL
         }
     }
 
-    // ENGINE
+    // BIGNUM
     [Compact]
-    [CCode (lower_case_cprefix="ENGINE_", cheader_filename="openssl/engine.h", free_function="ENGINE_free")]
-    public class ENGINE
+    [CCode (lower_case_cprefix="BN_", free_function="BN_free")]
+    public class BIGNUM
     {
-        public ENGINE();
+        public BIGNUM();
+        public int set_word(uint w);
     }
 
+    // BN_GENCB
+    [Compact]
+    public class BN_GENCB
+    {}
+    // EVP_CIPHER
     [Compact]
     public class EVP_CIPHER
     {}
-
-    public EVP_PKEY? rsa_keygen(int bits)
-    {
-        var ctx = EVP_PKEY_CTX.rsa();
-        if (ctx == null) {
-            return null;
-        }
-        if (ctx.keygen_init() <= 0) {
-            return null;
-        }
-        if (ctx.set_rsa_keygen_bits(bits) <= 0) {
-            return null;
-        }
-        EVP_PKEY pkey;
-        if (ctx.keygen(out pkey) <= 0) {
-            return null;
-        }
-        return pkey;
-    }
 }
