@@ -56,6 +56,18 @@ namespace OpenSSL
             return new RSA.d2i_privkey(null, &p, binary.length);
         }
 
+        public static RSA? read_pubkey_binary_mem(uint8[] mem)
+        {
+            uint8 *p = mem;
+            return new RSA.d2i_pubkey(null, &p, mem.length);
+        }
+
+        public static RSA? read_privkey_binary_mem(uint8[] mem)
+        {
+            uint8 *p = mem;
+            return new RSA.d2i_privkey(null, &p, mem.length);
+        }
+
         public static RSA? keygen(int bits)
         {
             var rsa = new RSA();
