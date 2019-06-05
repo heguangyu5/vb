@@ -1,3 +1,6 @@
+// VB.cmd += -X /usr/lib/x86_64-linux-gnu/libcrypto.a
+// VB.cmd += -X -ldl
+// VB.cmd += -X /usr/lib/x86_64-linux-gnu/libz.a
 [CCode (cprefix="", lower_case_cprefix="", cheader_filename="openssl/pem.h,openssl/rsa.h,openssl/engine.h,openssl/bn.h")]
 namespace OpenSSL
 {
