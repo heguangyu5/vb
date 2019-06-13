@@ -6,23 +6,33 @@ namespace LMDB
     {
         public Db(string path, size_t db_size_in_mb);
         [CCode (array_length_type="size_t")]
-        public unowned uint8[] get(uint8[] key);
+        public unowned uint8[]? get(uint8[] key);
         public bool put(uint8[] key, uint8[] data);
 
-        public unowned string get_str(string key)
+        public unowned uint8[]? get_key_str(string key)
         {
             unowned uint8[] k = key.data;
-            k.length = key.length + 1;
+            k.length++;
+            return get(k);
+        }
+
+        public unowned string? get_str(string key)
+        {
+            unowned uint8[] k = key.data;
+            k.length++;
             unowned uint8[] data = get(k);
+            if (data == null) {
+                return null;
+            }
             return (string)data;
         }
 
         public bool put_str(string key, string data)
         {
             unowned uint8[] k = key.data;
-            k.length = key.length + 1;
+            k.length++;
             unowned uint8[] d = data.data;
-            d.length = data.length + 1;
+            d.length++;
             return put(k, d);
         }
 

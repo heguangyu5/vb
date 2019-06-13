@@ -11,4 +11,9 @@ void main()
     foreach (var item in db) {
         stdout.printf("%s = %s\n", item.str_key(), item.str_data());
     }
+
+    unowned uint8[] data = db.get_key_str("key1");
+    foreach (var i in data) {
+        stdout.printf("%#x %c\n", i, i);
+    }
 }
