@@ -11,6 +11,9 @@ struct LMDB_Db
 LMDB_Db *lmdb_db_new(const char *path, size_t db_size_in_mb)
 {
     LMDB_Db *db = calloc(1, sizeof(LMDB_Db));
+    if (db == NULL) {
+        exit(1);
+    }
 
     MDB_txn *txn;
     if (   mdb_env_create(&db->env) != MDB_SUCCESS
@@ -68,4 +71,96 @@ bool lmdb_db_put(LMDB_Db *db, uint8_t *key, size_t key_len, uint8_t *data, size_
     }
 
     return mdb_txn_commit(txn) == MDB_SUCCESS;
+}
+
+struct LMDB_Item
+{
+    MDB_val k;
+    MDB_val d;
+};
+
+LMDB_Item *lmdb_item_new()
+{
+    return calloc(1, sizeof(LMDB_Item));
+}
+
+void lmdb_item_free(LMDB_Item *item)
+{
+    free(item);
+}
+
+uint8_t *lmdb_item_key(LMDB_Item *item, size_t *key_len)
+{
+    *key_len = item->k.mv_size;
+    return item->k.mv_data;
+}
+
+uint8_t *lmdb_item_data(LMDB_Item *item, size_t *data_len)
+{
+    *data_len = item->d.mv_size;
+    return item->d.mv_data;
+}
+
+struct LMDB_Iterator
+{
+    MDB_txn *txn;
+    MDB_cursor *cursor;
+    MDB_cursor_op op;
+};
+
+LMDB_Iterator *lmdb_iterator_new(LMDB_Db *db)
+{
+    LMDB_Iterator *iterator = calloc(1, sizeof(LMDB_Iterator));
+    if (iterator == NULL) {
+        return NULL;
+    }
+
+    if (mdb_txn_begin(db->env, NULL, MDB_RDONLY, &iterator->txn) != MDB_SUCCESS) {
+        free(iterator);
+        return NULL;
+    }
+    if (mdb_cursor_open(iterator->txn, db->dbi, &iterator->cursor) != MDB_SUCCESS) {
+        mdb_txn_abort(iterator->txn);
+        free(iterator);
+        return NULL;
+    }
+
+    iterator->op = MDB_FIRST;
+    return iterator;
+}
+
+void lmdb_iterator_free(LMDB_Iterator *iterator)
+{
+    if (iterator->cursor != NULL) {
+        mdb_cursor_close(iterator->cursor);
+    }
+    if (iterator->txn != NULL) {
+        mdb_txn_abort(iterator->txn);
+    }
+    free(iterator);
+}
+
+LMDB_Item *lmdb_iterator_next_value(LMDB_Iterator *iterator)
+{
+    LMDB_Item *item = lmdb_item_new();
+    if (item == NULL) {
+        goto end_iterator;
+    }
+
+    if (mdb_cursor_get(iterator->cursor, &item->k, &item->d, iterator->op) != MDB_SUCCESS) {
+        free(item);
+        goto end_iterator;
+    }
+
+    if (iterator->op != MDB_NEXT) {
+        iterator->op = MDB_NEXT;
+    }
+    return item;
+
+end_iterator:
+    mdb_cursor_close(iterator->cursor);
+    mdb_txn_abort(iterator->txn);
+    iterator->cursor = NULL;
+    iterator->txn = NULL;
+    return NULL;
 }
