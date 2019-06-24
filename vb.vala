@@ -10,7 +10,7 @@ class ValaBuild
 
     HashTable<string, bool> vapidir = new HashTable<string, bool>(str_hash, str_equal);
     HashTable<string, bool> VBcmd = new HashTable<string, bool>(str_hash, str_equal);
-    Array<string> static_libs = new Array<string>();
+    SList<string> static_libs = new SList<string>();
 
     public ValaBuild(string[] args)
     {
@@ -57,9 +57,9 @@ class ValaBuild
     {
         this.append_source_files();
         this.static_libs.sort(strcmp);
-        for (var i = 0; i < this.static_libs.length; i++) {
+        foreach (var lib in this.static_libs) {
             this.cmd += "-X";
-            this.cmd += this.static_libs.index(i);
+            this.cmd += lib;
         }
 
         stdout.printf("==exec==\n\n%s\n\n========\n\n\n", string.joinv(" \\\n  ", this.cmd));
@@ -94,7 +94,7 @@ class ValaBuild
                     this.cmd += "--pkg=" + name[0:name.length-5];
                     this.parse_vb_cmd(path + name);
                 } else if (ext[-2:ext.length] == ".a") {
-                    this.static_libs.append_val(path + name);
+                    this.static_libs.append(path + name);
                 }
             }
         }
