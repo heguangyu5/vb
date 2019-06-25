@@ -18,7 +18,7 @@ LMDB_Db *lmdb_db_new(const char *path, size_t db_size_in_mb)
     MDB_txn *txn;
     if (   mdb_env_create(&db->env) != MDB_SUCCESS
         || mdb_env_set_mapsize(db->env, db_size_in_mb * 1024 * 1024) != MDB_SUCCESS
-        || mdb_env_open(db->env, path, 0, 0640) != MDB_SUCCESS
+        || mdb_env_open(db->env, path, MDB_MAPASYNC | MDB_WRITEMAP, 0640) != MDB_SUCCESS
         || mdb_txn_begin(db->env, NULL, 0, &txn) != MDB_SUCCESS
         || mdb_dbi_open(txn, NULL, 0, &db->dbi) != MDB_SUCCESS
         || mdb_txn_commit(txn) != MDB_SUCCESS
@@ -31,9 +31,15 @@ LMDB_Db *lmdb_db_new(const char *path, size_t db_size_in_mb)
 
 void lmdb_db_free(LMDB_Db *db)
 {
+    mdb_env_sync(db->env, 1);
     mdb_dbi_close(db->env, db->dbi);
     mdb_env_close(db->env);
     free(db);
+}
+
+void lmdb_db_sync(LMDB_Db *db)
+{
+    mdb_env_sync(db->env, 1);
 }
 
 uint8_t *lmdb_db_get(LMDB_Db *db, uint8_t *key, size_t key_len, size_t *data_len)

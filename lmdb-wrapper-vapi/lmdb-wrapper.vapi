@@ -5,6 +5,7 @@ namespace LMDB
     class Db
     {
         public Db(string path, size_t db_size_in_mb);
+        public void sync();
         [CCode (array_length_type="size_t")]
         public unowned uint8[]? get(uint8[] key);
         public bool put(uint8[] key, uint8[] data);
