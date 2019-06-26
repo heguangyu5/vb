@@ -1,3 +1,4 @@
 build
 lmdb-LMDB_0.9.22
+lmdb.h
 *.a

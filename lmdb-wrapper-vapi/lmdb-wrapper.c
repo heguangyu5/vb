@@ -1,6 +1,6 @@
 #include "lmdb-wrapper.h"
 #include <stdlib.h>
-#include "lmdb-LMDB_0.9.22/libraries/liblmdb/lmdb.h"
+#include "lmdb.h"
 
 struct LMDB_Db
 {
