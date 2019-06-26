@@ -6,4 +6,3 @@ libccanjson.a: json.h json.c
 install:
 	mkdir -p /usr/local/include/ccan/json
 	cp json.h /usr/local/include/ccan/json
-	ldconfig
