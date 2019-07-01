@@ -79,6 +79,13 @@ bool lmdb_db_put(LMDB_Db *db, uint8_t *key, size_t key_len, uint8_t *data, size_
     return mdb_txn_commit(txn) == MDB_SUCCESS;
 }
 
+LMDB_Stat *lmdb_db_stat(LMDB_Db *db)
+{
+    LMDB_Stat *stat = malloc(sizeof(LMDB_Stat));
+    mdb_env_stat(db->env, (MDB_stat *)stat);
+    return stat;
+}
+
 struct LMDB_Item
 {
     MDB_val k;

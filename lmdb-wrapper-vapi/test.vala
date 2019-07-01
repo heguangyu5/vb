@@ -16,4 +16,7 @@ void main()
     foreach (var i in data) {
         stdout.printf("%#x %c\n", i, i);
     }
+
+    db.stat().print();
+
 }

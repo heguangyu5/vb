@@ -13,6 +13,17 @@ void lmdb_db_sync(LMDB_Db *db);
 uint8_t *lmdb_db_get(LMDB_Db *db, uint8_t *key, size_t key_len, size_t *data_len);
 bool lmdb_db_put(LMDB_Db *db, uint8_t *key, size_t key_len, uint8_t *data, size_t data_len);
 
+typedef struct LMDB_Stat {
+	unsigned int	ms_psize;			/**< Size of a database page.
+											This is currently the same for all databases. */
+	unsigned int	ms_depth;			/**< Depth (height) of the B-tree */
+	size_t		ms_branch_pages;	/**< Number of internal (non-leaf) pages */
+	size_t		ms_leaf_pages;		/**< Number of leaf pages */
+	size_t		ms_overflow_pages;	/**< Number of overflow pages */
+	size_t		ms_entries;			/**< Number of data items */
+} LMDB_Stat;
+LMDB_Stat *lmdb_db_stat(LMDB_Db *db);
+
 typedef struct LMDB_Item LMDB_Item;
 LMDB_Item *lmdb_item_new();
 void lmdb_item_free(LMDB_Item *item);
