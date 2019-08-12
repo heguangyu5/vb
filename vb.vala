@@ -11,6 +11,7 @@ class ValaBuild
     HashTable<string, bool> vapidir = new HashTable<string, bool>(str_hash, str_equal);
     HashTable<string, bool> VBcmd = new HashTable<string, bool>(str_hash, str_equal);
     SList<string> static_libs = new SList<string>();
+    SList<string> shared_libs = new SList<string>();
 
     public ValaBuild(string[] args)
     {
@@ -58,6 +59,11 @@ class ValaBuild
         this.append_source_files();
         this.static_libs.sort(strcmp);
         foreach (var lib in this.static_libs) {
+            this.cmd += "-X";
+            this.cmd += lib;
+        }
+        this.shared_libs.sort(strcmp);
+        foreach (var lib in this.shared_libs) {
             this.cmd += "-X";
             this.cmd += lib;
         }
@@ -116,7 +122,11 @@ class ValaBuild
             if (regex.match(contents, 0, out match)) {
                 do {
                     var m = match.fetch(1);
-                    if (!(m in VBcmd)) {
+                    if (m.has_prefix("-X -l")) {
+                        this.shared_libs.append(m[3:m.length]);
+                    } else if (m.has_prefix("-X ") && m[-2:m.length] == ".a") {
+                        this.static_libs.append(m[3:m.length]);
+                    } else if (!(m in VBcmd)) {
                         VBcmd[m] = true;
                         foreach (string s in m.split(" ")) {
                             this.cmd += s;
