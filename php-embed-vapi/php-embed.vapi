@@ -4,5 +4,5 @@
 namespace PHP
 {
     [CCode (array_length_type="size_t")]
-    public uint8[] run_php(string filename);
+    public uint8[] run_php(string code);
 }
