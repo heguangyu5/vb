@@ -1,3 +1,11 @@
+int php_say_hi()
+{
+    PHP.req_startup();
+    stdout.printf("%s\n", (string)PHP.execute_return_string("php_say_hi"));
+    PHP.req_shutdown();
+    return 0;
+}
+
 void main(string[] args)
 {
     PHP.startup();
@@ -11,6 +19,9 @@ void main(string[] args)
     PHP.execute("$exists = class_exists('A'); var_dump($exists); if ($exists) { A::$a = 2; var_dump(A::$a); }");
     stdout.printf("%s\n", (string)PHP.execute_return_string("'hello'"));
     PHP.req_shutdown();
+
+    var t = new Thread<int>(null, php_say_hi);
+    t.join();
 
     PHP.shutdown();
 }

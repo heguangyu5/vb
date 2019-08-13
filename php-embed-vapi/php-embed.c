@@ -50,6 +50,9 @@ void php_shutdown()
 
 bool php_req_startup()
 {
+    (void)ts_resource(0);
+    ZEND_TSRMLS_CACHE_UPDATE();
+
     if (php_request_startup() == -1) {
         return false;
     }
