@@ -18,7 +18,8 @@ namespace Mysql
             string dbname,
             uint port = 3306,
             string host = "localhost",
-            string charset = "utf8"
+            string charset = "utf8",
+            bool auto_reconnect = true
         ) throws DbError
         {
             if (this.db == null) {
@@ -26,6 +27,11 @@ namespace Mysql
             }
             if (this.db.options(Option.SET_CHARSET_NAME, charset) != 0) {
                 throw new DbError.Options("set charset failed: %s", this.db.error());
+            }
+            if (auto_reconnect) {
+                if (this.db.options(Option.OPT_RECONNECT, "1") != 0) {
+                    throw new DbError.Options("set reconnect failed: %s", this.db.error());
+                }
             }
             if (!this.db.real_connect(host, username, passwd, dbname, port)) {
                 throw new DbError.Connect("connect failed: %s", this.db.error());
