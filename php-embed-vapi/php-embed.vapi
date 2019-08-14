@@ -11,5 +11,5 @@ namespace PHP
 
     public void execute(string code);
     [CCode (array_length_type="size_t")]
-    public uint8[] execute_return_string(string code);
+    public uint8[]? execute_return_string(string code);
 }
