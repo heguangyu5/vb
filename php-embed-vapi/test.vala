@@ -1,7 +1,7 @@
 int php_say_hi()
 {
     PHP.req_startup();
-    stdout.printf("%s\n", (string)PHP.execute_return_string("php_say_hi"));
+    stdout.printf("%s\n", (string)PHP.execute_return_string("'php_say_hi'"));
     PHP.req_shutdown();
     return 0;
 }

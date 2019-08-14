@@ -2,7 +2,14 @@
 #include <ext/standard/php_standard.h>
 #include "php-embed.h"
 
-#define HARDCODED_INI "html_errors=0\nregister_argc_argv=0\nimplicit_flush=1\noutput_buffering=0\nmax_execution_time=0\nmax_input_time=-1\n\0"
+#define HARDCODED_INI "error_reporting=2147483647\n" \
+                      "log_errors=1\n" \
+                      "html_errors=0\n" \
+                      "register_argc_argv=0\n" \
+                      "implicit_flush=1\n" \
+                      "output_buffering=0\n" \
+                      "max_execution_time=0\n" \
+                      "max_input_time=-1\n\0"
 
 ZEND_BEGIN_ARG_INFO(arginfo_dl, 0)
     ZEND_ARG_INFO(0, extension_filename)
@@ -72,7 +79,7 @@ void php_req_shutdown()
 void php_execute(char *code)
 {
     zend_first_try {
-        zend_eval_string(code, NULL, "php_embed_vala" TSRMLS_CC);
+        zend_eval_string_ex(code, NULL, "php_embed_vala", 1 TSRMLS_CC);
     } zend_end_try();
 }
 
@@ -82,7 +89,7 @@ char *php_execute_return_string(char *code, size_t *len)
 
     zend_first_try {
         zval retval;
-        zend_eval_string(code, &retval, "php_embed_vala" TSRMLS_CC);
+        zend_eval_string_ex(code, &retval, "php_embed_vala", 1 TSRMLS_CC);
         if (Z_TYPE(retval) == IS_STRING) {
             *len = Z_STRLEN(retval);
             ret = malloc(*len + 1);
