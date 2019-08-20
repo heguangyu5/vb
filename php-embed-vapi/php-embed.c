@@ -10,6 +10,7 @@
                       "output_buffering=0\n" \
                       "max_execution_time=0\n" \
                       "max_input_time=-1\n" \
+                      "memory_limit=512M\n" \
                       "include_path=.:/usr/share/php7\0"
 
 ZEND_BEGIN_ARG_INFO(arginfo_dl, 0)
@@ -96,6 +97,7 @@ char *php_execute_return_string(char *code, size_t *len)
             ret = malloc(*len + 1);
             memcpy(ret, Z_STRVAL(retval), *len);
             ret[*len] = 0;
+            zval_ptr_dtor(&retval);
         } else {
             *len = 0;
         }

@@ -24,5 +24,13 @@ void main(string[] args)
     var t = new Thread<int>(null, php_say_hi);
     t.join();
 
+    // test memory
+    PHP.req_startup();
+    var i = 1024;
+    while (i-- > 0) {
+        PHP.execute_return_string("str_repeat('a', 1024 * 1024)");
+    }
+    PHP.req_shutdown();
+
     PHP.shutdown();
 }
