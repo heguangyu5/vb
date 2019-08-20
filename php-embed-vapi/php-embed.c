@@ -10,7 +10,7 @@
                       "output_buffering=0\n" \
                       "max_execution_time=0\n" \
                       "max_input_time=-1\n" \
-                      "include_path=.:/usr/share/php\0"
+                      "include_path=.:/usr/share/php7\0"
 
 ZEND_BEGIN_ARG_INFO(arginfo_dl, 0)
     ZEND_ARG_INFO(0, extension_filename)
