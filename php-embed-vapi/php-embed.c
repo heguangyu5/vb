@@ -27,8 +27,6 @@ bool php_startup()
     signal(SIGPIPE, SIG_IGN);
 
     tsrm_startup(1, 1, 0, NULL);
-    (void)ts_resource(0);
-    ZEND_TSRMLS_CACHE_UPDATE();
 
     zend_signal_startup();
 
@@ -57,10 +55,11 @@ void php_shutdown()
     php_embed_module.ini_entries = NULL;
 }
 
-bool php_req_startup()
+bool php_req_startup(bool main_thread)
 {
-    (void)ts_resource(0);
-    ZEND_TSRMLS_CACHE_UPDATE();
+    if (!main_thread) {
+        (void)ts_resource(0);
+    }
 
     if (php_request_startup() == -1) {
         return false;
@@ -73,15 +72,18 @@ bool php_req_startup()
     return true;
 }
 
-void php_req_shutdown()
+void php_req_shutdown(bool main_thread)
 {
     php_request_shutdown(NULL);
+    if (!main_thread) {
+        ts_free_thread();
+    }
 }
 
 void php_execute(char *code)
 {
     zend_first_try {
-        zend_eval_string_ex(code, NULL, "php_embed_vala", 1 TSRMLS_CC);
+        zend_eval_string_ex(code, NULL, "php_embed_vala", 1);
     } zend_end_try();
 }
 
@@ -91,7 +93,7 @@ char *php_execute_return_string(char *code, size_t *len)
 
     zend_first_try {
         zval retval;
-        zend_eval_string_ex(code, &retval, "php_embed_vala", 1 TSRMLS_CC);
+        zend_eval_string_ex(code, &retval, "php_embed_vala", 1);
         if (Z_TYPE(retval) == IS_STRING) {
             *len = Z_STRLEN(retval);
             ret = malloc(*len + 1);

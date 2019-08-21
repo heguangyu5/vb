@@ -1,8 +1,8 @@
 int php_say_hi()
 {
-    PHP.req_startup();
+    PHP.req_startup(false);
     stdout.printf("%s\n", (string)PHP.execute_return_string("'php_say_hi'"));
-    PHP.req_shutdown();
+    PHP.req_shutdown(false);
     return 0;
 }
 
@@ -21,9 +21,6 @@ void main(string[] args)
     stdout.printf("%s\n", (string)PHP.execute_return_string("get_include_path();"));
     PHP.req_shutdown();
 
-    var t = new Thread<int>(null, php_say_hi);
-    t.join();
-
     // test memory
     PHP.req_startup();
     var i = 1024;
@@ -31,6 +28,12 @@ void main(string[] args)
         PHP.execute_return_string("str_repeat('a', 1024 * 1024)");
     }
     PHP.req_shutdown();
+
+    // test threads
+    var t = new Thread<int>(null, php_say_hi);
+    t.join();
+    t = new Thread<int>(null, php_say_hi);
+    t.join();
 
     PHP.shutdown();
 }

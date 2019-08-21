@@ -6,8 +6,8 @@ namespace PHP
     public bool startup();
     public void shutdown();
 
-    public bool req_startup();
-    public bool req_shutdown();
+    public bool req_startup(bool main_thread = true);
+    public bool req_shutdown(bool main_thread = true);
 
     public void execute(string code);
     [CCode (array_length_type="size_t")]

@@ -6,8 +6,8 @@
 bool php_startup();
 void php_shutdown();
 
-bool php_req_startup();
-void php_req_shutdown();
+bool php_req_startup(bool main_thread);
+void php_req_shutdown(bool main_thread);
 
 void php_execute(char *code);
 char *php_execute_return_string(char *code, size_t *len);
