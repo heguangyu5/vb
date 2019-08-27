@@ -1,3 +1,7 @@
+// VB.cmd += -X -L/usr/lib/oracle/19.3/client64/lib/
+// VB.cmd += -X -lnnz19
+// VB.cmd += -X -lclntsh
+
 int php_say_hi()
 {
     PHP.req_startup(false);
@@ -9,6 +13,10 @@ int php_say_hi()
 void main(string[] args)
 {
     PHP.startup();
+
+    PHP.req_startup();
+    PHP.execute("phpinfo();");
+    PHP.req_shutdown();
 
     PHP.req_startup();
     PHP.execute("$exists = class_exists('A'); var_dump($exists); if (!$exists) { class A { public static $a; } } A::$a = 1; var_dump(A::$a);");
