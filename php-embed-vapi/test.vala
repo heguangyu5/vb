@@ -1,7 +1,3 @@
-// VB.cmd += -X -L/usr/lib/oracle/19.3/client64/lib/
-// VB.cmd += -X -lnnz19
-// VB.cmd += -X -lclntsh
-
 int php_say_hi()
 {
     PHP.req_startup(false);

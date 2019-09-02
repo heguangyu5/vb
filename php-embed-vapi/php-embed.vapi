@@ -1,5 +1,7 @@
 // VB.cmd += -X -lm
 // VB.cmd += -X -ldl
+// VB.cmd += -X -L/usr/lib/oracle/11.2/client64/lib/
+// VB.cmd += -X -lclntsh
 [CCode (cheader_filename="php-embed.h", lower_case_cprefix="php_", cprefix="")]
 namespace PHP
 {
