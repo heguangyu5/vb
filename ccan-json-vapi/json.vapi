@@ -76,6 +76,7 @@ namespace Ccan.Json
             if (this.is_object()) {
                 return "[Object]";
             }
+            return "[Unexpected]";
         }
         // construction
         [CCode (cname="json_mkarray")]
