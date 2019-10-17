@@ -1,5 +1,5 @@
 libccanjson.a: json.h json.c
-	gcc -Wall -c -O -o libccanjson.o json.c
+	gcc -fPIC -Wall -c -O -o libccanjson.o json.c
 	ar rs libccanjson.a libccanjson.o
 	rm libccanjson.o
 
